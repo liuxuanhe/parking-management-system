@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.parking.mapper.HouseMapper">
+
+    <!-- 根据小区ID和房屋号查询房屋 -->
+    <select id="selectByCommunityAndHouseNo" resultType="com.parking.model.House">
+        SELECT id, community_id, house_no, building, unit, floor, room, area,
+               status, create_time, update_time, is_deleted, deleted_time
+        FROM sys_house
+        WHERE community_id = #{communityId} AND house_no = #{houseNo} AND is_deleted = 0
+    </select>
+
+</mapper>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.parking.mapper.OwnerHouseRelMapper">
+
+    <!-- 插入业主房屋号关联记录 -->
+    <insert id="insert" parameterType="com.parking.model.OwnerHouseRel" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_owner_house_rel (community_id, owner_id, house_no, relation_type,
+                                          create_time, update_time, is_deleted)
+        VALUES (#{communityId}, #{ownerId}, #{houseNo}, #{relationType},
+                NOW(), NOW(), 0)
+    </insert>
+
+</mapper>
