@@ -56,6 +56,9 @@ public enum ErrorCode {
     PARKING_13002(13002, "Token 无效"),
     PARKING_13003(13003, "Token 已被撤销"),
 
+    // 锁相关
+    LOCK_ACQUIRE_FAILED(10010, "获取分布式锁失败，请稍后重试"),
+
     // 通用错误
     SYSTEM_ERROR(99999, "系统内部错误"),
     PARAM_ERROR(10000, "参数校验失败"),
