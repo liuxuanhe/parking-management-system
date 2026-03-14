@@ -53,6 +53,9 @@ jwt:
   access-token-expiration: 7200000
   refresh-token-expiration: 604800000
 
+signature:
+  secret-key: c2lnbmF0dXJlLXNlY3JldC1rZXktZm9yLXBhcmtpbmctc3lzdGVtLTIwMjQ=
+
 logging:
   level:
     root: INFO
