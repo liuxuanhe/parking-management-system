@@ -1,0 +1,87 @@
+{
+  "pages": [
+    {
+      "path": "pages/login/login",
+      "style": {
+        "navigationBarTitleText": "登录"
+      }
+    },
+    {
+      "path": "pages/register/register",
+      "style": {
+        "navigationBarTitleText": "注册"
+      }
+    },
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "首页"
+      }
+    },
+    {
+      "path": "pages/vehicles/list",
+      "style": {
+        "navigationBarTitleText": "车牌管理"
+      }
+    },
+    {
+      "path": "pages/vehicles/add",
+      "style": {
+        "navigationBarTitleText": "添加车牌"
+      }
+    },
+    {
+      "path": "pages/vehicles/primary",
+      "style": {
+        "navigationBarTitleText": "设置 Primary 车辆"
+      }
+    },
+    {
+      "path": "pages/visitor/apply",
+      "style": {
+        "navigationBarTitleText": "Visitor 申请"
+      }
+    },
+    {
+      "path": "pages/records/list",
+      "style": {
+        "navigationBarTitleText": "入场记录"
+      }
+    },
+    {
+      "path": "pages/quota/index",
+      "style": {
+        "navigationBarTitleText": "月度配额"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "停车场管理",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "backgroundColor": "#F5F5F5"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#1890FF",
+    "backgroundColor": "#FFFFFF",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/vehicles/list",
+        "text": "车牌"
+      },
+      {
+        "pagePath": "pages/records/list",
+        "text": "记录"
+      },
+      {
+        "pagePath": "pages/quota/index",
+        "text": "配额"
+      }
+    ]
+  }
+}
