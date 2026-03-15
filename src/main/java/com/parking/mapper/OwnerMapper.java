@@ -4,6 +4,8 @@ import com.parking.model.Owner;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
+
 /**
  * 业主 Mapper 接口
  */
@@ -64,4 +66,26 @@ public interface OwnerMapper {
      */
     int updateRealName(@Param("id") Long id,
                        @Param("realName") String realName);
+
+    /**
+     * 根据ID列表批量查询业主（使用行级锁）
+     *
+     * @param ids 业主ID列表
+     * @return 业主列表
+     */
+    List<Owner> selectByIdsForUpdate(@Param("ids") List<Long> ids);
+
+    /**
+     * 更新业主审核状态
+     *
+     * @param id           业主ID
+     * @param status       新状态
+     * @param rejectReason 驳回原因
+     * @param auditAdminId 审核管理员ID
+     * @return 更新行数
+     */
+    int updateAuditStatus(@Param("id") Long id,
+                          @Param("status") String status,
+                          @Param("rejectReason") String rejectReason,
+                          @Param("auditAdminId") Long auditAdminId);
 }

@@ -68,4 +68,17 @@
         ORDER BY create_time DESC
     </select>
 
+    <!-- 根据ID列表批量查询申请（行级锁） -->
+    <select id="selectByIdsForUpdate" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM visitor_application
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND is_deleted = 0
+        ORDER BY id ASC
+        FOR UPDATE
+    </select>
+
 </mapper>

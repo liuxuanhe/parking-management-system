@@ -40,4 +40,9 @@ public interface VisitorApplicationMapper {
      */
     List<VisitorApplication> selectByHouse(@Param("communityId") Long communityId,
                                            @Param("houseNo") String houseNo);
+
+    /**
+     * 根据ID列表批量查询申请（使用行级锁）
+     */
+    List<VisitorApplication> selectByIdsForUpdate(@Param("ids") List<Long> ids);
 }
