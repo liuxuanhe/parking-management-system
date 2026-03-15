@@ -14,3 +14,8 @@ target/
 
 # Logs
 *.log
+
+node_modules
+
+# 前端构建产物
+admin-portal/dist/
