@@ -91,4 +91,42 @@ public class VehicleServiceImpl implements VehicleService {
         response.setCreateTime(carPlate.getCreateTime());
         return response;
     }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteVehicle(Long vehicleId) {
+        // 1. 查询车牌记录
+        CarPlate carPlate = carPlateMapper.selectById(vehicleId);
+        if (carPlate == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR.getCode(), "车牌记录不存在");
+        }
+
+        // 2. 验证车辆当前不在场（Requirements 3.6, 3.7）
+        // 简化实现：通过 status 判断，status 为 'entered' 视为在场
+        // 后续入场模块完善后改为查询 parking_car_record 分表
+        if ("entered".equals(carPlate.getStatus())) {
+            throw new BusinessException(ErrorCode.PARKING_3002);
+        }
+
+        // 3. 执行逻辑删除（Requirements 3.8）
+        int rows = carPlateMapper.logicalDelete(vehicleId);
+        if (rows == 0) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR.getCode(), "车牌删除失败，记录可能已被删除");
+        }
+
+        log.info("车牌删除成功: vehicleId={}, carNumber={}, communityId={}, houseNo={}",
+                vehicleId, carPlate.getCarNumber(),
+                carPlate.getCommunityId(), carPlate.getHouseNo());
+
+        // 4. 失效缓存 vehicles:{communityId}:{houseNo}（Requirements 3.9）
+        String cacheKey = cacheService.generateKey("vehicles",
+                carPlate.getCommunityId(), carPlate.getHouseNo());
+        cacheService.delete(cacheKey);
+        log.info("缓存已失效: key={}", cacheKey);
+
+        // 5. 记录操作日志预留（Requirements 3.9，后续在审计日志模块中完善）
+        log.info("操作日志预留: 车牌删除, requestId={}, vehicleId={}, carNumber={}, communityId={}, houseNo={}",
+                RequestContext.getRequestId(), vehicleId, carPlate.getCarNumber(),
+                carPlate.getCommunityId(), carPlate.getHouseNo());
+    }
 }

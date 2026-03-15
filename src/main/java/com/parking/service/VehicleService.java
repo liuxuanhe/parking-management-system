@@ -17,4 +17,13 @@ public interface VehicleService {
      * @return 添加车牌响应
      */
     VehicleAddResponse addVehicle(VehicleAddRequest request);
+
+    /**
+     * 删除车牌（逻辑删除）
+     * 查询车牌 → 验证车辆不在场 → 逻辑删除 → 失效缓存 → 记录操作日志
+     * Validates: Requirements 3.6, 3.7, 3.8, 3.9
+     *
+     * @param vehicleId 车牌记录ID
+     */
+    void deleteVehicle(Long vehicleId);
 }

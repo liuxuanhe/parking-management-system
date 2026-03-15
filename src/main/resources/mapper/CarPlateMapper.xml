@@ -53,4 +53,22 @@
                 0, NOW(), NOW())
     </insert>
 
+    <!-- 根据 ID 查询车牌记录（未删除的） -->
+    <select id="selectById" resultType="com.parking.model.CarPlate">
+        SELECT id, community_id, house_no, owner_id, car_number,
+               car_brand, car_model, car_color, status,
+               is_deleted, create_time, update_time, deleted_time
+        FROM sys_car_plate
+        WHERE id = #{id}
+          AND is_deleted = 0
+    </select>
+
+    <!-- 逻辑删除车牌记录 -->
+    <update id="logicalDelete">
+        UPDATE sys_car_plate
+        SET is_deleted = 1, deleted_time = NOW(), update_time = NOW()
+        WHERE id = #{id}
+          AND is_deleted = 0
+    </update>
+
 </mapper>

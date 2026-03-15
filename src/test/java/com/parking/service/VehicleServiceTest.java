@@ -207,4 +207,103 @@ class VehicleServiceTest {
             assertEquals("京AD12345", response.getCarNumber());
         }
     }
+
+    @Nested
+    @DisplayName("deleteVehicle - 删除车牌")
+    class DeleteVehicleTests {
+
+        private CarPlate createNormalCarPlate() {
+            CarPlate carPlate = new CarPlate();
+            carPlate.setId(100L);
+            carPlate.setCommunityId(COMMUNITY_ID);
+            carPlate.setHouseNo(HOUSE_NO);
+            carPlate.setOwnerId(OWNER_ID);
+            carPlate.setCarNumber(VALID_CAR_NUMBER);
+            carPlate.setStatus("normal");
+            carPlate.setIsDeleted(0);
+            return carPlate;
+        }
+
+        @Test
+        @DisplayName("删除 normal 状态车牌应成功执行逻辑删除")
+        void deleteVehicle_normalStatus_shouldLogicalDelete() {
+            CarPlate carPlate = createNormalCarPlate();
+            when(carPlateMapper.selectById(100L)).thenReturn(carPlate);
+            when(carPlateMapper.logicalDelete(100L)).thenReturn(1);
+            when(cacheService.generateKey("vehicles", COMMUNITY_ID, HOUSE_NO)).thenReturn("vehicles:1001:1-101");
+
+            vehicleService.deleteVehicle(100L);
+
+            verify(carPlateMapper).logicalDelete(100L);
+        }
+
+        @Test
+        @DisplayName("删除车牌成功应失效缓存")
+        void deleteVehicle_success_shouldInvalidateCache() {
+            CarPlate carPlate = createNormalCarPlate();
+            when(carPlateMapper.selectById(100L)).thenReturn(carPlate);
+            when(carPlateMapper.logicalDelete(100L)).thenReturn(1);
+            when(cacheService.generateKey("vehicles", COMMUNITY_ID, HOUSE_NO)).thenReturn("vehicles:1001:1-101");
+
+            vehicleService.deleteVehicle(100L);
+
+            verify(cacheService).generateKey("vehicles", COMMUNITY_ID, HOUSE_NO);
+            verify(cacheService).delete("vehicles:1001:1-101");
+        }
+
+        @Test
+        @DisplayName("车牌记录不存在应抛出 PARAM_ERROR 异常")
+        void deleteVehicle_notFound_shouldThrowException() {
+            when(carPlateMapper.selectById(999L)).thenReturn(null);
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> vehicleService.deleteVehicle(999L));
+
+            assertEquals(10000, exception.getCode());
+            assertTrue(exception.getMessage().contains("车牌记录不存在"));
+            verify(carPlateMapper, never()).logicalDelete(anyLong());
+        }
+
+        @Test
+        @DisplayName("车辆在场（status=entered）应抛出 PARKING_3002 异常")
+        void deleteVehicle_vehicleEntered_shouldThrowParking3002() {
+            CarPlate carPlate = createNormalCarPlate();
+            carPlate.setStatus("entered");
+            when(carPlateMapper.selectById(100L)).thenReturn(carPlate);
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> vehicleService.deleteVehicle(100L));
+
+            assertEquals(3002, exception.getCode());
+            verify(carPlateMapper, never()).logicalDelete(anyLong());
+        }
+
+        @Test
+        @DisplayName("删除 primary 状态车牌应成功")
+        void deleteVehicle_primaryStatus_shouldSucceed() {
+            CarPlate carPlate = createNormalCarPlate();
+            carPlate.setStatus("primary");
+            when(carPlateMapper.selectById(100L)).thenReturn(carPlate);
+            when(carPlateMapper.logicalDelete(100L)).thenReturn(1);
+            when(cacheService.generateKey("vehicles", COMMUNITY_ID, HOUSE_NO)).thenReturn("vehicles:1001:1-101");
+
+            vehicleService.deleteVehicle(100L);
+
+            verify(carPlateMapper).logicalDelete(100L);
+        }
+
+        @Test
+        @DisplayName("逻辑删除返回0行应抛出异常（并发删除场景）")
+        void deleteVehicle_concurrentDelete_shouldThrowException() {
+            CarPlate carPlate = createNormalCarPlate();
+            when(carPlateMapper.selectById(100L)).thenReturn(carPlate);
+            when(carPlateMapper.logicalDelete(100L)).thenReturn(0);
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> vehicleService.deleteVehicle(100L));
+
+            assertEquals(10000, exception.getCode());
+            assertTrue(exception.getMessage().contains("车牌删除失败"));
+        }
+    }
 }

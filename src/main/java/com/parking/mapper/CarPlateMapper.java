@@ -64,4 +64,22 @@ public interface CarPlateMapper {
      * @param carPlate 车牌实体
      */
     void insert(CarPlate carPlate);
+
+    /**
+     * 根据 ID 查询车牌记录（未删除的）
+     * Validates: Requirements 3.6
+     *
+     * @param id 车牌记录ID
+     * @return 车牌实体，不存在则返回 null
+     */
+    CarPlate selectById(@Param("id") Long id);
+
+    /**
+     * 逻辑删除车牌记录（设置 is_deleted = 1）
+     * Validates: Requirements 3.8
+     *
+     * @param id 车牌记录ID
+     * @return 更新行数
+     */
+    int logicalDelete(@Param("id") Long id);
 }
