@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 入场记录 Mapper 接口
@@ -101,4 +102,54 @@ public interface ParkingCarRecordMapper {
             @Param("cursorId") Long cursorId,
             @Param("limit") int limit
     );
+
+    /**
+     * 统计指定小区在指定日期的入场总数
+     */
+    int countEntryByDate(@Param("tableName") String tableName,
+                         @Param("communityId") Long communityId,
+                         @Param("startTime") LocalDateTime startTime,
+                         @Param("endTime") LocalDateTime endTime);
+
+    /**
+     * 统计指定小区在指定日期的 Primary 入场数
+     */
+    int countEntryByDateAndType(@Param("tableName") String tableName,
+                                @Param("communityId") Long communityId,
+                                @Param("startTime") LocalDateTime startTime,
+                                @Param("endTime") LocalDateTime endTime,
+                                @Param("vehicleType") String vehicleType);
+
+    /**
+     * 统计指定小区在指定日期的出场总数
+     */
+    int countExitByDate(@Param("tableName") String tableName,
+                        @Param("communityId") Long communityId,
+                        @Param("startTime") LocalDateTime startTime,
+                        @Param("endTime") LocalDateTime endTime);
+
+    /**
+     * 统计指定小区在指定日期各小时的入场数量，用于计算峰值时段
+     * 返回格式: hour(0-23) -> count
+     */
+    List<java.util.Map<String, Object>> countEntryByHour(@Param("tableName") String tableName,
+                                                          @Param("communityId") Long communityId,
+                                                          @Param("startTime") LocalDateTime startTime,
+                                                          @Param("endTime") LocalDateTime endTime);
+
+    /**
+     * 计算指定小区在指定日期已出场车辆的平均停放时长（分钟）
+     */
+    Integer avgDurationByDate(@Param("tableName") String tableName,
+                              @Param("communityId") Long communityId,
+                              @Param("startTime") LocalDateTime startTime,
+                              @Param("endTime") LocalDateTime endTime);
+
+    /**
+     * 统计指定小区在指定日期的异常出场数
+     */
+    int countExceptionExitByDate(@Param("tableName") String tableName,
+                                  @Param("communityId") Long communityId,
+                                  @Param("startTime") LocalDateTime startTime,
+                                  @Param("endTime") LocalDateTime endTime);
 }

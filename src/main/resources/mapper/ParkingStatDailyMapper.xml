@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.parking.mapper.ParkingStatDailyMapper">
+
+    <resultMap id="BaseResultMap" type="com.parking.model.ParkingStatDaily">
+        <id column="id" property="id"/>
+        <result column="community_id" property="communityId"/>
+        <result column="stat_date" property="statDate"/>
+        <result column="total_entry_count" property="totalEntryCount"/>
+        <result column="total_exit_count" property="totalExitCount"/>
+        <result column="primary_entry_count" property="primaryEntryCount"/>
+        <result column="visitor_entry_count" property="visitorEntryCount"/>
+        <result column="peak_hour" property="peakHour"/>
+        <result column="peak_count" property="peakCount"/>
+        <result column="avg_parking_duration" property="avgParkingDuration"/>
+        <result column="zombie_vehicle_count" property="zombieVehicleCount"/>
+        <result column="exception_exit_count" property="exceptionExitCount"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, community_id, stat_date, total_entry_count, total_exit_count,
+        primary_entry_count, visitor_entry_count, peak_hour, peak_count,
+        avg_parking_duration, zombie_vehicle_count, exception_exit_count,
+        create_time, update_time
+    </sql>
+
+    <!-- 增量更新入场计数：不存在则插入，存在则累加 -->
+    <insert id="incrementEntryCount">
+        INSERT INTO parking_stat_daily (community_id, stat_date, total_entry_count,
+                                        primary_entry_count, visitor_entry_count,
+                                        total_exit_count, peak_hour, peak_count,
+                                        avg_parking_duration, zombie_vehicle_count,
+                                        exception_exit_count, create_time, update_time)
+        VALUES (#{communityId}, #{statDate}, 1,
+                <if test="vehicleType == 'primary'">1, 0,</if>
+                <if test="vehicleType != 'primary'">0, 1,</if>
+                0, 0, 0, 0, 0, 0, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE
+            total_entry_count = total_entry_count + 1,
+            <if test="vehicleType == 'primary'">
+                primary_entry_count = primary_entry_count + 1,
+            </if>
+            <if test="vehicleType != 'primary'">
+                visitor_entry_count = visitor_entry_count + 1,
+            </if>
+            update_time = NOW()
+    </insert>
+
+    <!-- 增量更新出场计数 -->
+    <insert id="incrementExitCount">
+        INSERT INTO parking_stat_daily (community_id, stat_date, total_entry_count,
+                                        total_exit_count, primary_entry_count,
+                                        visitor_entry_count, peak_hour, peak_count,
+                                        avg_parking_duration, zombie_vehicle_count,
+                                        exception_exit_count, create_time, update_time)
+        VALUES (#{communityId}, #{statDate}, 0, 1, 0, 0, 0, 0, 0, 0, 0, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE
+            total_exit_count = total_exit_count + 1,
+            update_time = NOW()
+    </insert>
+
+    <select id="selectByDate" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM parking_stat_daily
+        WHERE community_id = #{communityId}
+          AND stat_date = #{statDate}
+    </select>
+
+    <!-- 回补/覆盖写入每日统计数据（upsert） -->
+    <insert id="upsertDailyStat">
+        INSERT INTO parking_stat_daily (community_id, stat_date, total_entry_count,
+                                        total_exit_count, primary_entry_count,
+                                        visitor_entry_count, peak_hour, peak_count,
+                                        avg_parking_duration, zombie_vehicle_count,
+                                        exception_exit_count, create_time, update_time)
+        VALUES (#{communityId}, #{statDate}, #{totalEntryCount},
+                #{totalExitCount}, #{primaryEntryCount},
+                #{visitorEntryCount}, #{peakHour}, #{peakCount},
+                #{avgParkingDuration}, #{zombieVehicleCount},
+                #{exceptionExitCount}, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE
+            total_entry_count = #{totalEntryCount},
+            total_exit_count = #{totalExitCount},
+            primary_entry_count = #{primaryEntryCount},
+            visitor_entry_count = #{visitorEntryCount},
+            peak_hour = #{peakHour},
+            peak_count = #{peakCount},
+            avg_parking_duration = #{avgParkingDuration},
+            zombie_vehicle_count = #{zombieVehicleCount},
+            exception_exit_count = #{exceptionExitCount},
+            update_time = NOW()
+    </insert>
+
+</mapper>

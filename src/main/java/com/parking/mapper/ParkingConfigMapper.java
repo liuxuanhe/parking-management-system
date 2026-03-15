@@ -38,4 +38,11 @@ public interface ParkingConfigMapper {
      * @return 当前在场车辆数
      */
     int countEnteredVehicles(@Param("communityId") Long communityId);
+
+    /**
+     * 查询所有小区的 community_id 列表
+     *
+     * @return 所有小区 ID
+     */
+    java.util.List<Long> selectAllCommunityIds();
 }

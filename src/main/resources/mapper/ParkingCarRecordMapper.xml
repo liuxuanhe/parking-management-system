@@ -68,6 +68,66 @@
         WHERE id = #{record.id}
     </update>
 
+    <!-- 统计指定小区在指定日期的入场总数 -->
+    <select id="countEntryByDate" resultType="int">
+        SELECT COUNT(*)
+        FROM ${tableName}
+        WHERE community_id = #{communityId}
+          AND enter_time &gt;= #{startTime}
+          AND enter_time &lt; #{endTime}
+    </select>
+
+    <!-- 统计指定小区在指定日期按车辆类型的入场数 -->
+    <select id="countEntryByDateAndType" resultType="int">
+        SELECT COUNT(*)
+        FROM ${tableName}
+        WHERE community_id = #{communityId}
+          AND enter_time &gt;= #{startTime}
+          AND enter_time &lt; #{endTime}
+          AND vehicle_type = #{vehicleType}
+    </select>
+
+    <!-- 统计指定小区在指定日期的出场总数 -->
+    <select id="countExitByDate" resultType="int">
+        SELECT COUNT(*)
+        FROM ${tableName}
+        WHERE community_id = #{communityId}
+          AND exit_time &gt;= #{startTime}
+          AND exit_time &lt; #{endTime}
+          AND status = 'exited'
+    </select>
+
+    <!-- 统计指定小区在指定日期各小时的入场数量 -->
+    <select id="countEntryByHour" resultType="java.util.Map">
+        SELECT HOUR(enter_time) AS hour_val, COUNT(*) AS cnt
+        FROM ${tableName}
+        WHERE community_id = #{communityId}
+          AND enter_time &gt;= #{startTime}
+          AND enter_time &lt; #{endTime}
+        GROUP BY HOUR(enter_time)
+    </select>
+
+    <!-- 计算指定小区在指定日期已出场车辆的平均停放时长（分钟） -->
+    <select id="avgDurationByDate" resultType="java.lang.Integer">
+        SELECT CAST(AVG(duration) AS SIGNED)
+        FROM ${tableName}
+        WHERE community_id = #{communityId}
+          AND exit_time &gt;= #{startTime}
+          AND exit_time &lt; #{endTime}
+          AND status = 'exited'
+          AND duration IS NOT NULL
+    </select>
+
+    <!-- 统计指定小区在指定日期的异常出场数 -->
+    <select id="countExceptionExitByDate" resultType="int">
+        SELECT COUNT(*)
+        FROM ${tableName}
+        WHERE community_id = #{communityId}
+          AND exit_time &gt;= #{startTime}
+          AND exit_time &lt; #{endTime}
+          AND status = 'exit_exception'
+    </select>
+
     <!-- 跨月分表查询入场记录（UNION ALL + 游标分页） -->
     <select id="selectRecordsByUnionAll" resultType="com.parking.model.ParkingCarRecord">
         SELECT * FROM (

@@ -38,4 +38,10 @@
           AND is_deleted = 0
     </select>
 
+    <!-- 查询所有小区的 community_id -->
+    <select id="selectAllCommunityIds" resultType="java.lang.Long">
+        SELECT DISTINCT community_id
+        FROM parking_config
+    </select>
+
 </mapper>
