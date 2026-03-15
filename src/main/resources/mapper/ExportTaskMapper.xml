@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.parking.mapper.ExportTaskMapper">
+
+    <!-- 插入导出任务 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="task.id">
+        INSERT INTO export_task (community_id, export_type, operator_id, operator_name,
+            query_params, need_raw_data, status, create_time, update_time)
+        VALUES (#{task.communityId}, #{task.exportType}, #{task.operatorId}, #{task.operatorName},
+            #{task.queryParams}, #{task.needRawData}, #{task.status}, NOW(), NOW())
+    </insert>
+
+    <!-- 根据ID查询导出任务 -->
+    <select id="selectById" resultType="com.parking.model.ExportTask">
+        SELECT id, community_id, export_type, operator_id, operator_name,
+            query_params, need_raw_data, status, file_url, file_size,
+            record_count, error_message, start_time, end_time, expire_time,
+            create_time, update_time
+        FROM export_task
+        WHERE id = #{id}
+    </select>
+
+    <!-- 更新导出任务状态 -->
+    <update id="updateStatus">
+        UPDATE export_task
+        SET status = #{task.status},
+            file_url = #{task.fileUrl},
+            file_size = #{task.fileSize},
+            record_count = #{task.recordCount},
+            error_message = #{task.errorMessage},
+            start_time = #{task.startTime},
+            end_time = #{task.endTime},
+            expire_time = #{task.expireTime},
+            update_time = NOW()
+        WHERE id = #{task.id}
+    </update>
+
+</mapper>

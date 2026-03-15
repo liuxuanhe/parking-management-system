@@ -3,6 +3,7 @@ package com.parking.controller;
 import com.parking.common.ApiResponse;
 import com.parking.common.RequestContext;
 import com.parking.model.AccessLog;
+import com.parking.model.ExportTask;
 import com.parking.model.OperationLog;
 import com.parking.service.AuditLogService;
 import lombok.RequiredArgsConstructor;
@@ -55,5 +56,24 @@ public class AuditLogController {
         List<AccessLog> logs = auditLogService.queryAccessLogs(
                 communityId, userId, apiPath, startTime, endTime);
         return ApiResponse.success(logs, RequestContext.getRequestId());
+    }
+
+    /**
+     * 导出审计日志（异步任务）
+     * POST /api/v1/audit/logs/export
+     * 需要超级管理员权限
+     */
+    @PostMapping("/logs/export")
+    public ApiResponse<ExportTask> exportAuditLogs(
+            @RequestParam Long communityId,
+            @RequestParam Long operatorId,
+            @RequestParam String operatorName,
+            @RequestParam(defaultValue = "audit_log") String exportType,
+            @RequestParam(required = false) String queryParams,
+            @RequestParam(defaultValue = "0") Integer needRawData) {
+        log.info("导出审计日志: communityId={}, operatorId={}, exportType={}", communityId, operatorId, exportType);
+        ExportTask task = auditLogService.exportAuditLogs(
+                communityId, operatorId, operatorName, exportType, queryParams, needRawData);
+        return ApiResponse.success(task, RequestContext.getRequestId());
     }
 }
