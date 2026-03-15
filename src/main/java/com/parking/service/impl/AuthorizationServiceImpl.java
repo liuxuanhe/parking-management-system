@@ -2,6 +2,8 @@ package com.parking.service.impl;
 
 import com.parking.common.BusinessException;
 import com.parking.common.ErrorCode;
+import com.parking.mapper.IpWhitelistMapper;
+import com.parking.model.IpWhitelist;
 import com.parking.service.AuthorizationService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -11,6 +13,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * 权限校验服务实现类
@@ -70,9 +73,12 @@ public class AuthorizationServiceImpl implements AuthorizationService {
     }
 
     private final RedisTemplate<String, Object> redisTemplate;
+    private final IpWhitelistMapper ipWhitelistMapper;
 
-    public AuthorizationServiceImpl(RedisTemplate<String, Object> redisTemplate) {
+    public AuthorizationServiceImpl(RedisTemplate<String, Object> redisTemplate,
+                                     IpWhitelistMapper ipWhitelistMapper) {
         this.redisTemplate = redisTemplate;
+        this.ipWhitelistMapper = ipWhitelistMapper;
     }
 
     @Override
@@ -179,13 +185,18 @@ public class AuthorizationServiceImpl implements AuthorizationService {
     }
 
     /**
-     * 预留：从数据库加载 IP 白名单
-     * 当前返回空列表，后续接入 Mapper 后实现数据库查询
+     * 从数据库加载 IP 白名单
+     * 查询指定操作类型的有效白名单，提取 IP 地址和 CIDR 范围
      */
     protected List<String> loadWhitelistFromDatabase(String operation) {
-        // 预留接口，后续实现数据库查询
-        // 示例: return ipWhitelistMapper.selectByOperation(operation);
-        return Collections.emptyList();
+        List<IpWhitelist> records = ipWhitelistMapper.selectByOperation(operation);
+        if (records == null || records.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return records.stream()
+                .map(r -> r.getIpRange() != null ? r.getIpRange() : r.getIpAddress())
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 
     /**

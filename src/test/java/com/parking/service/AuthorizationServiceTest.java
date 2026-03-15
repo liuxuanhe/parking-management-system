@@ -1,6 +1,7 @@
 package com.parking.service;
 
 import com.parking.common.BusinessException;
+import com.parking.mapper.IpWhitelistMapper;
 import com.parking.service.impl.AuthorizationServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -34,11 +35,14 @@ class AuthorizationServiceTest {
     @Mock
     private ValueOperations<String, Object> valueOperations;
 
+    @Mock
+    private IpWhitelistMapper ipWhitelistMapper;
+
     private AuthorizationServiceImpl authorizationService;
 
     @BeforeEach
     void setUp() {
-        authorizationService = new AuthorizationServiceImpl(redisTemplate);
+        authorizationService = new AuthorizationServiceImpl(redisTemplate, ipWhitelistMapper);
     }
 
     // ==================== checkCommunityAccess 测试 ====================
