@@ -36,4 +36,18 @@ public class ExportController {
                 communityId, operatorId, operatorName, queryParams, needRawData);
         return ApiResponse.success(task, RequestContext.getRequestId());
     }
+
+    /**
+     * 查询导出任务状态
+     * GET /api/v1/exports/{exportId}/status
+     */
+    @GetMapping("/{exportId}/status")
+    public ApiResponse<ExportTask> getExportStatus(@PathVariable Long exportId) {
+        log.info("查询导出任务状态: exportId={}", exportId);
+        ExportTask task = exportService.getExportTaskStatus(exportId);
+        if (task == null) {
+            return ApiResponse.error(10000, "导出任务不存在", RequestContext.getRequestId());
+        }
+        return ApiResponse.success(task, RequestContext.getRequestId());
+    }
 }
