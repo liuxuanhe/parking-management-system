@@ -75,4 +75,35 @@
         WHERE id = #{id} AND is_deleted = 0
     </update>
 
+    <!-- 查询管理员列表，Super_Admin 传 null 查所有 -->
+    <select id="selectList" resultType="com.parking.model.Admin">
+        SELECT id, community_id, username, real_name, phone_number,
+               role, status, login_fail_count, last_login_time, last_login_ip,
+               must_change_password, create_time, update_time
+        FROM sys_admin
+        WHERE is_deleted = 0
+        <if test="communityId != null">
+            AND community_id = #{communityId}
+        </if>
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 解锁管理员账号 -->
+    <update id="unlockAccount">
+        UPDATE sys_admin
+        SET status = 'active',
+            login_fail_count = 0,
+            update_time = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 重置管理员密码 -->
+    <update id="resetPassword">
+        UPDATE sys_admin
+        SET password = #{password},
+            must_change_password = #{mustChangePassword},
+            update_time = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
 </mapper>

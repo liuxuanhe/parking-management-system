@@ -42,7 +42,7 @@
           <a-form-item>
             <a-button type="primary" @click="fetchOperationLogs">查询</a-button>
             <a-button style="margin-left: 8px" @click="resetOperationFilter">重置</a-button>
-            <a-button style="margin-left: 8px" @click="handleExport">导出</a-button>
+            <a-button v-if="authStore.role === 'super_admin'" style="margin-left: 8px" @click="handleExport">导出</a-button>
           </a-form-item>
         </a-form>
 

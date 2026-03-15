@@ -2,6 +2,7 @@ package com.parking.controller;
 
 import com.parking.common.ApiResponse;
 import com.parking.common.RequestContext;
+import com.parking.common.RequireRole;
 import com.parking.dto.BatchAuditRequest;
 import com.parking.dto.BatchAuditResponse;
 import com.parking.dto.OwnerDisableRequest;
@@ -62,6 +63,7 @@ public class OwnerController {
      * @return 操作结果
      */
     @PostMapping("/{ownerId}/disable")
+    @RequireRole({"super_admin"})
     public ApiResponse<Void> disable(@PathVariable Long ownerId,
                                      @Valid @RequestBody OwnerDisableRequest request) {
         log.info("业主账号注销请求: ownerId={}, reason={}", ownerId, request.getReason());

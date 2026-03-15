@@ -2,6 +2,7 @@ package com.parking.controller;
 
 import com.parking.common.ApiResponse;
 import com.parking.common.RequestContext;
+import com.parking.common.RequireRole;
 import com.parking.model.IpWhitelist;
 import com.parking.service.IpWhitelistService;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ public class IpWhitelistController {
      * POST /api/v1/ip-whitelist
      */
     @PostMapping
+    @RequireRole({"super_admin"})
     public ApiResponse<IpWhitelist> addIpWhitelist(
             @RequestParam Long communityId,
             @RequestParam String ipAddress,
@@ -46,6 +48,7 @@ public class IpWhitelistController {
      * DELETE /api/v1/ip-whitelist/{id}
      */
     @DeleteMapping("/{id}")
+    @RequireRole({"super_admin"})
     public ApiResponse<Void> deleteIpWhitelist(@PathVariable Long id) {
         log.info("删除 IP 白名单: id={}", id);
         ipWhitelistService.deleteIpWhitelist(id);
@@ -57,6 +60,7 @@ public class IpWhitelistController {
      * GET /api/v1/ip-whitelist
      */
     @GetMapping
+    @RequireRole({"super_admin"})
     public ApiResponse<List<IpWhitelist>> listIpWhitelist() {
         log.info("查询 IP 白名单列表");
         List<IpWhitelist> list = ipWhitelistService.listIpWhitelist();

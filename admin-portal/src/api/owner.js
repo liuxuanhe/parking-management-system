@@ -34,3 +34,14 @@ export function auditOwner(ownerId, data) {
 export function batchAuditOwners(data) {
   return request.post('/owners/batch-audit', data)
 }
+
+/**
+ * 注销业主账号（Super_Admin 专属）
+ * POST /api/v1/owners/{ownerId}/disable
+ * @param {number} ownerId - 业主 ID
+ * @param {Object} data - { reason: "注销原因" }
+ * @returns {Promise<Object>}
+ */
+export function disableOwner(ownerId, data) {
+  return request.post(`/owners/${ownerId}/disable`, data)
+}

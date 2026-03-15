@@ -2,6 +2,7 @@ package com.parking.controller;
 
 import com.parking.common.ApiResponse;
 import com.parking.common.RequestContext;
+import com.parking.common.RequireRole;
 import com.parking.model.ExportTask;
 import com.parking.service.ExportService;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +43,7 @@ public class ExportController {
      * POST /api/v1/exports/parking-records/raw
      */
     @PostMapping("/parking-records/raw")
+    @RequireRole({"super_admin"})
     public ApiResponse<ExportTask> exportRawParkingRecords(
             @RequestParam Long communityId,
             @RequestParam Long operatorId,

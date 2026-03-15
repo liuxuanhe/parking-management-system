@@ -60,15 +60,26 @@
 
         <!-- 操作列 -->
         <template v-else-if="column.dataIndex === 'action'">
-          <a-space v-if="record.status === 'pending'">
-            <a-button type="link" size="small" @click="handleApprove(record)">
-              通过
-            </a-button>
-            <a-button type="link" danger size="small" @click="openRejectModal(record)">
-              驳回
+          <a-space>
+            <template v-if="record.status === 'pending'">
+              <a-button type="link" size="small" @click="handleApprove(record)">
+                通过
+              </a-button>
+              <a-button type="link" danger size="small" @click="openRejectModal(record)">
+                驳回
+              </a-button>
+            </template>
+            <!-- 注销按钮：仅 Super_Admin 可见 -->
+            <a-button
+              v-if="authStore.role === 'super_admin' && record.status === 'approved'"
+              type="link"
+              danger
+              size="small"
+              @click="openDisableModal(record)"
+            >
+              注销
             </a-button>
           </a-space>
-          <span v-else style="color: #999">—</span>
         </template>
       </template>
     </a-table>
@@ -114,6 +125,29 @@
         showCount
       />
     </a-modal>
+
+    <!-- 注销业主对话框（Super_Admin 专属） -->
+    <a-modal
+      v-model:open="disableModalVisible"
+      title="注销业主账号"
+      @ok="handleDisableConfirm"
+      :confirmLoading="disableLoading"
+      okText="确认注销"
+      okType="danger"
+      cancelText="取消"
+    >
+      <p style="margin-bottom: 8px; color: #f5222d">
+        注意：注销后该业主将无法登录，且关联的车辆数据将被清理。
+      </p>
+      <p style="margin-bottom: 8px">请填写注销原因：</p>
+      <a-textarea
+        v-model:value="disableReason"
+        placeholder="请输入注销原因"
+        :rows="4"
+        :maxlength="200"
+        showCount
+      />
+    </a-modal>
   </div>
 </template>
 
@@ -121,7 +155,7 @@
 import { ref, reactive, computed } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import { useAuthStore } from '@/stores/auth'
-import { getOwnerList, auditOwner, batchAuditOwners } from '@/api/owner'
+import { getOwnerList, auditOwner, batchAuditOwners, disableOwner } from '@/api/owner'
 
 const authStore = useAuthStore()
 
@@ -317,6 +351,38 @@ async function handleBatchRejectConfirm() {
     // 错误已在 request.js 拦截器中统一提示
   } finally {
     batchRejectLoading.value = false
+  }
+}
+
+// ========== 注销业主（Super_Admin 专属） ==========
+const disableModalVisible = ref(false)
+const disableReason = ref('')
+const disableLoading = ref(false)
+let currentDisableRecord = null
+
+function openDisableModal(record) {
+  currentDisableRecord = record
+  disableReason.value = ''
+  disableModalVisible.value = true
+}
+
+async function handleDisableConfirm() {
+  if (!disableReason.value.trim()) {
+    message.warning('请填写注销原因')
+    return
+  }
+  disableLoading.value = true
+  try {
+    await disableOwner(currentDisableRecord.ownerId, {
+      reason: disableReason.value.trim()
+    })
+    message.success('业主账号已注销')
+    disableModalVisible.value = false
+    fetchOwnerList()
+  } catch (err) {
+    // 错误已在 request.js 拦截器中统一提示
+  } finally {
+    disableLoading.value = false
   }
 }
 

@@ -4,6 +4,8 @@ import com.parking.model.Admin;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
+
 /**
  * 管理员 Mapper 接口
  */
@@ -73,4 +75,31 @@ public interface AdminMapper {
      * @param id 管理员ID
      */
     void lockAccount(@Param("id") Long id);
+
+    /**
+     * 查询管理员列表
+     * Super_Admin 传 null 查所有，Property_Admin 传 communityId 查本小区
+     *
+     * @param communityId 小区ID（可选）
+     * @return 管理员列表
+     */
+    List<Admin> selectList(@Param("communityId") Long communityId);
+
+    /**
+     * 解锁管理员账号：重置 loginFailCount=0，status='active'
+     *
+     * @param id 管理员ID
+     */
+    void unlockAccount(@Param("id") Long id);
+
+    /**
+     * 重置管理员密码
+     *
+     * @param id                 管理员ID
+     * @param password           新密码（BCrypt 加密后）
+     * @param mustChangePassword 是否必须修改密码
+     */
+    void resetPassword(@Param("id") Long id,
+                       @Param("password") String password,
+                       @Param("mustChangePassword") Integer mustChangePassword);
 }

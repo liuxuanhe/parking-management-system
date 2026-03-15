@@ -4,9 +4,38 @@
       <div style="color: #fff; font-size: 18px; font-weight: bold">
         停车场管理后台
       </div>
-      <a-button type="link" style="color: #fff" @click="handleLogout">
-        退出登录
-      </a-button>
+      <div style="display: flex; align-items: center; gap: 16px">
+        <!-- 角色标识 -->
+        <a-tag :color="authStore.role === 'super_admin' ? 'red' : 'blue'">
+          {{ authStore.role === 'super_admin' ? '超级管理员' : '物业管理员' }}
+        </a-tag>
+
+        <!-- 小区切换（Super_Admin 专属） -->
+        <template v-if="authStore.role === 'super_admin'">
+          <a-select
+            v-model:value="currentCommunityId"
+            style="width: 200px"
+            placeholder="选择小区"
+            @change="handleSwitchCommunity"
+          >
+            <a-select-option
+              v-for="c in communityList"
+              :key="c.id"
+              :value="c.id"
+            >
+              {{ c.communityName }}
+            </a-select-option>
+          </a-select>
+        </template>
+        <!-- Property_Admin 固定显示小区名称 -->
+        <template v-else>
+          <span style="color: #fff">{{ currentCommunityName }}</span>
+        </template>
+
+        <a-button type="link" style="color: #fff" @click="handleLogout">
+          退出登录
+        </a-button>
+      </div>
     </a-layout-header>
     <a-layout>
       <!-- 侧边栏菜单 -->
@@ -71,6 +100,20 @@
             <template #title>审计日志</template>
             <a-menu-item key="/audit/logs">日志查询</a-menu-item>
           </a-sub-menu>
+
+          <!-- Super_Admin 专属：管理员管理 -->
+          <a-sub-menu v-if="authStore.role === 'super_admin'" key="admin-manage">
+            <template #icon><UserOutlined /></template>
+            <template #title>管理员管理</template>
+            <a-menu-item key="/admins">管理员列表</a-menu-item>
+          </a-sub-menu>
+
+          <!-- Super_Admin 专属：IP 白名单 -->
+          <a-sub-menu v-if="authStore.role === 'super_admin'" key="ip-whitelist">
+            <template #icon><SafetyOutlined /></template>
+            <template #title>IP 白名单</template>
+            <a-menu-item key="/ip-whitelist">白名单配置</a-menu-item>
+          </a-sub-menu>
         </a-menu>
       </a-layout-sider>
 
@@ -83,10 +126,16 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { TeamOutlined, CarOutlined, UserSwitchOutlined, SettingOutlined, BarChartOutlined, WarningOutlined, FileSearchOutlined } from '@ant-design/icons-vue'
+import {
+  TeamOutlined, CarOutlined, UserSwitchOutlined, SettingOutlined,
+  BarChartOutlined, WarningOutlined, FileSearchOutlined,
+  UserOutlined, SafetyOutlined
+} from '@ant-design/icons-vue'
+import { message } from 'ant-design-vue'
 import { useAuthStore } from '@/stores/auth'
+import { getCommunityList, switchCommunity } from '@/api/community'
 
 const router = useRouter()
 const route = useRoute()
@@ -100,6 +149,15 @@ const selectedKeys = ref([route.path])
 
 /** 当前展开的子菜单 */
 const openKeys = ref(['owner'])
+
+/** 小区列表 */
+const communityList = ref([])
+
+/** 当前操作小区ID */
+const currentCommunityId = ref(authStore.communityId)
+
+/** 当前小区名称（Property_Admin 使用） */
+const currentCommunityName = ref('')
 
 /** 监听路由变化，同步菜单选中状态 */
 watch(
@@ -119,4 +177,45 @@ function handleLogout() {
   authStore.logout()
   router.push('/login')
 }
+
+/** 加载小区列表 */
+async function loadCommunities() {
+  try {
+    const data = await getCommunityList()
+    communityList.value = Array.isArray(data) ? data : []
+    // 设置当前小区名称
+    const current = communityList.value.find(c => c.id === authStore.communityId)
+    if (current) {
+      currentCommunityName.value = current.communityName
+    }
+  } catch (err) {
+    // 错误已在 request.js 拦截器中统一提示
+  }
+}
+
+/** 切换小区（Super_Admin 专属） */
+async function handleSwitchCommunity(communityId) {
+  try {
+    const data = await switchCommunity(communityId)
+    // 更新 token 和 communityId
+    authStore.setLoginInfo({
+      accessToken: data.accessToken,
+      refreshToken: authStore.refreshToken,
+      role: authStore.role,
+      communityId: communityId,
+      adminId: authStore.adminId
+    })
+    const target = communityList.value.find(c => c.id === communityId)
+    message.success(`已切换到：${target ? target.communityName : communityId}`)
+    // 刷新当前页面数据
+    router.go(0)
+  } catch (err) {
+    // 恢复选择
+    currentCommunityId.value = authStore.communityId
+  }
+}
+
+onMounted(() => {
+  loadCommunities()
+})
 </script>

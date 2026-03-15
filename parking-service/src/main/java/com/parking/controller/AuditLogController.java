@@ -2,6 +2,7 @@ package com.parking.controller;
 
 import com.parking.common.ApiResponse;
 import com.parking.common.RequestContext;
+import com.parking.common.RequireRole;
 import com.parking.model.AccessLog;
 import com.parking.model.ExportTask;
 import com.parking.model.OperationLog;
@@ -64,6 +65,7 @@ public class AuditLogController {
      * 需要超级管理员权限
      */
     @PostMapping("/logs/export")
+    @RequireRole({"super_admin"})
     public ApiResponse<ExportTask> exportAuditLogs(
             @RequestParam Long communityId,
             @RequestParam Long operatorId,
