@@ -79,6 +79,26 @@
         LIMIT 1
     </select>
 
+    <select id="selectActiveByCarNumber" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM visitor_session
+        WHERE community_id = #{communityId}
+          AND car_number = #{carNumber}
+          AND status = 'in_park'
+        ORDER BY create_time DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectOutOfParkByCarNumber" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM visitor_session
+        WHERE community_id = #{communityId}
+          AND car_number = #{carNumber}
+          AND status = 'out_of_park'
+        ORDER BY create_time DESC
+        LIMIT 1
+    </select>
+
     <update id="updateTimeoutNotified">
         UPDATE visitor_session
         SET timeout_notified = #{timeoutNotified},

@@ -5,7 +5,9 @@ import com.parking.dto.ExitExceptionHandleRequest;
 import com.parking.dto.ExitRequest;
 import com.parking.dto.ExitResponse;
 import com.parking.mapper.ParkingCarRecordMapper;
+import com.parking.mapper.VisitorSessionMapper;
 import com.parking.model.ParkingCarRecord;
+import com.parking.model.VisitorSession;
 import com.parking.service.impl.ExitServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -43,6 +45,9 @@ class ExitServiceTest {
     @Mock
     private NotificationService notificationService;
 
+    @Mock
+    private VisitorSessionMapper visitorSessionMapper;
+
     private ExitServiceImpl exitService;
 
     private static final Long COMMUNITY_ID = 1001L;
@@ -55,7 +60,8 @@ class ExitServiceTest {
                 parkingCarRecordMapper,
                 distributedLockService,
                 cacheService,
-                notificationService
+                notificationService,
+                visitorSessionMapper
         );
     }
 
@@ -215,12 +221,51 @@ class ExitServiceTest {
     }
 
     @Nested
-    @DisplayName("vehicleExit - Visitor 车辆")
+    @DisplayName("vehicleExit - Visitor 车辆时长累计")
     class VisitorExitTests {
 
+        private VisitorSession createActiveSession() {
+            VisitorSession session = new VisitorSession();
+            session.setId(50L);
+            session.setCommunityId(COMMUNITY_ID);
+            session.setHouseNo(HOUSE_NO);
+            session.setAuthorizationId(10L);
+            session.setCarNumber(CAR_NUMBER);
+            session.setSessionStart(LocalDateTime.now().minusHours(5));
+            session.setLastEntryTime(LocalDateTime.now().minusHours(2));
+            session.setAccumulatedDuration(60); // 已累计60分钟
+            session.setStatus("in_park");
+            session.setTimeoutNotified(0);
+            return session;
+        }
+
         @Test
-        @DisplayName("Visitor 车辆出场时应正常出场（时长累计预留）")
-        void visitorVehicle_shouldExitNormally() {
+        @DisplayName("Visitor 出场 - 正常出场并累计时长")
+        void visitorVehicle_shouldExitAndAccumulateDuration() {
+            ExitRequest request = createExitRequest();
+            ParkingCarRecord entryRecord = createEnteredRecord();
+            entryRecord.setVehicleType("visitor");
+
+            VisitorSession session = createActiveSession();
+
+            when(parkingCarRecordMapper.selectEnteredRecord(anyString(), eq(COMMUNITY_ID), eq(CAR_NUMBER)))
+                    .thenReturn(entryRecord);
+            setupLockMock();
+            when(visitorSessionMapper.selectActiveByCarNumber(COMMUNITY_ID, CAR_NUMBER)).thenReturn(session);
+
+            ExitResponse response = exitService.vehicleExit(request);
+
+            assertNotNull(response);
+            assertEquals("visitor", response.getVehicleType());
+            assertEquals("exited", response.getStatus());
+            // 验证累计时长更新：原60分钟 + 本次停放时长
+            verify(visitorSessionMapper).updateDurationAndStatus(
+                    eq(50L), anyInt(), eq("out_of_park"));
+        }
+
+        @Test
+        @DisplayName("Visitor 出场 - 无活跃会话时仅正常出场")
+        void visitorVehicle_shouldExitNormallyWhenNoSession() {
             ExitRequest request = createExitRequest();
             ParkingCarRecord entryRecord = createEnteredRecord();
             entryRecord.setVehicleType("visitor");
@@ -228,13 +273,36 @@ class ExitServiceTest {
             when(parkingCarRecordMapper.selectEnteredRecord(anyString(), eq(COMMUNITY_ID), eq(CAR_NUMBER)))
                     .thenReturn(entryRecord);
             setupLockMock();
+            when(visitorSessionMapper.selectActiveByCarNumber(COMMUNITY_ID, CAR_NUMBER)).thenReturn(null);
 
             ExitResponse response = exitService.vehicleExit(request);
 
             assertNotNull(response);
-            assertEquals("visitor", response.getVehicleType());
             assertEquals("exited", response.getStatus());
-            assertNotNull(response.getDuration());
+            // 无活跃会话，不应更新时长
+            verify(visitorSessionMapper, never()).updateDurationAndStatus(anyLong(), anyInt(), anyString());
+        }
+
+        @Test
+        @DisplayName("Visitor 出场 - 累计时长计算正确性")
+        void visitorVehicle_shouldCalculateDurationCorrectly() {
+            ExitRequest request = createExitRequest();
+            ParkingCarRecord entryRecord = createEnteredRecord();
+            entryRecord.setVehicleType("visitor");
+            entryRecord.setEnterTime(LocalDateTime.now().minusMinutes(90)); // 入场90分钟前
+
+            VisitorSession session = createActiveSession();
+            session.setAccumulatedDuration(120); // 已累计120分钟
+
+            when(parkingCarRecordMapper.selectEnteredRecord(anyString(), eq(COMMUNITY_ID), eq(CAR_NUMBER)))
+                    .thenReturn(entryRecord);
+            setupLockMock();
+            when(visitorSessionMapper.selectActiveByCarNumber(COMMUNITY_ID, CAR_NUMBER)).thenReturn(session);
+
+            exitService.vehicleExit(request);
+
+            // 验证累计时长 = 120 + 90 = 210 分钟
+            verify(visitorSessionMapper).updateDurationAndStatus(eq(50L), eq(210), eq("out_of_park"));
         }
     }
 

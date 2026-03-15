@@ -489,7 +489,7 @@
     - 测试幂等性保护
     - _Requirements: 7.5, 7.6, 7.7, 7.10_
 
-  - [-] 10.6 实现 Visitor 首次入场激活逻辑
+  - [x] 10.6 实现 Visitor 首次入场激活逻辑
     - 在 EntryService 中添加 Visitor 入场处理
     - 查询授权记录 (status='approved_pending_activation')
     - 验证当前时间在24小时激活窗口内
@@ -506,7 +506,7 @@
     - 测试 visitor_session 创建
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
 
-  - [ ] 10.8 实现 Visitor 多次进出时长累计
+  - [-] 10.8 实现 Visitor 多次进出时长累计
     - 在 EntryService 中处理 Visitor 再次入场
     - 更新 visitor_session 状态为 in_park，记录 last_entry_time
     - 在 ExitService 中处理 Visitor 出场

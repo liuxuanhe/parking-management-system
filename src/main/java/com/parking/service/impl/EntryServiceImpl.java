@@ -292,10 +292,20 @@ public class EntryServiceImpl implements EntryService {
             return;
         }
 
-        // 4. 无待激活授权 → 检查是否有已激活的会话（再次入场场景，由 TASK 10.8 处理）
-        // 此处仅做基本校验：如果既无待激活授权也无已激活会话，拒绝入场
-        // 再次入场逻辑将在 TASK 10.8 中完善
-        log.info("Visitor 车辆入场，无待激活授权，检查已有会话: communityId={}, carNumber={}",
-                communityId, carNumber);
+        // 4. 无待激活授权 → 检查是否有已激活的会话（再次入场场景）
+        VisitorSession existingSession = visitorSessionMapper.selectActiveByCarNumber(communityId, carNumber);
+        if (existingSession == null) {
+            // 查找 out_of_park 状态的会话（Visitor 再次入场）
+            existingSession = visitorSessionMapper.selectOutOfParkByCarNumber(communityId, carNumber);
+        }
+        if (existingSession != null && "out_of_park".equals(existingSession.getStatus())) {
+            // 再次入场：更新会话状态为 in_park，记录 last_entry_time
+            visitorSessionMapper.updateStatusAndEntryTime(existingSession.getId(), "in_park", now);
+            log.info("Visitor 再次入场: sessionId={}, carNumber={}", existingSession.getId(), carNumber);
+            return;
+        }
+
+        // 如果既无待激活授权也无已有会话，仅记录日志（可能是数据异常）
+        log.warn("Visitor 车辆入场但无有效授权或会话: communityId={}, carNumber={}", communityId, carNumber);
     }
 }

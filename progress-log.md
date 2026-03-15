@@ -66,3 +66,5 @@
 [2026-03-15 11:48] TASK-10.2 - DONE - 实现 Visitor 申请接口，含 VisitorService、VisitorController、Mapper 及 XML，6 个单元测试全部通过
 
 [2026-03-15 11:52] TASK-10.4 - DONE - 实现 Visitor 审批接口 POST /api/v1/visitors/{visitorId}/audit，含幂等键、行级锁、24小时激活窗口授权、驳回原因、订阅消息通知，6个单元测试全部通过
+
+[2026-03-15 11:56] TASK-10.6 - DONE - 实现 Visitor 首次入场激活逻辑：在 EntryServiceImpl 中添加 handleVisitorEntry 方法，支持24小时激活窗口校验、授权激活、visitor_session 创建、窗口过期自动取消（PARKING_8001），3个新增测试全部通过，全量12个 EntryServiceTest 通过

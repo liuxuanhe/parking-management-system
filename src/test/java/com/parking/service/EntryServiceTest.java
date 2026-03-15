@@ -404,24 +404,33 @@ class EntryServiceTest {
         }
 
         @Test
-        @DisplayName("Visitor 入场 - 无待激活授权，允许通过（再次入场场景）")
-        void visitorEntry_shouldAllowWhenNoPendingAuth() {
+        @DisplayName("Visitor 入场 - 无待激活授权，有 out_of_park 会话，再次入场成功")
+        void visitorEntry_shouldReenterWhenOutOfParkSession() {
             EntryRequest request = createEntryRequest();
             CarPlate carPlate = createVisitorCarPlate();
+
+            VisitorSession outSession = new VisitorSession();
+            outSession.setId(20L);
+            outSession.setCommunityId(COMMUNITY_ID);
+            outSession.setHouseNo(HOUSE_NO);
+            outSession.setCarNumber(CAR_NUMBER);
+            outSession.setStatus("out_of_park");
+            outSession.setAccumulatedDuration(60);
 
             when(idempotencyService.getResult(anyString())).thenReturn(Optional.empty());
             when(carPlateMapper.selectByCommunityAndCarNumber(COMMUNITY_ID, CAR_NUMBER)).thenReturn(carPlate);
             setupLockMock();
             when(parkingSpaceCalculator.calculateAvailableSpaces(COMMUNITY_ID)).thenReturn(50);
             when(visitorAuthorizationMapper.selectPendingActivation(COMMUNITY_ID, CAR_NUMBER)).thenReturn(null);
+            when(visitorSessionMapper.selectActiveByCarNumber(COMMUNITY_ID, CAR_NUMBER)).thenReturn(null);
+            when(visitorSessionMapper.selectOutOfParkByCarNumber(COMMUNITY_ID, CAR_NUMBER)).thenReturn(outSession);
             when(idempotencyService.checkAndSet(anyString(), anyString(), eq(300))).thenReturn(true);
 
             EntryResponse response = entryService.vehicleEntry(request);
 
             assertNotNull(response);
-            assertEquals("visitor", response.getVehicleType());
-            // 验证未创建 visitor_session（再次入场由 TASK 10.8 处理）
-            verify(visitorSessionMapper, never()).insert(any());
+            // 验证更新会话状态为 in_park
+            verify(visitorSessionMapper).updateStatusAndEntryTime(eq(20L), eq("in_park"), any(LocalDateTime.class));
             // 验证创建了入场记录
             verify(parkingCarRecordMapper).insertToTable(anyString(), any());
         }

@@ -55,6 +55,18 @@ public interface VisitorSessionMapper {
     VisitorSession selectByAuthorizationId(@Param("authorizationId") Long authorizationId);
 
     /**
+     * 根据车牌号查询活跃会话（status='in_park'）
+     */
+    VisitorSession selectActiveByCarNumber(@Param("communityId") Long communityId,
+                                           @Param("carNumber") String carNumber);
+
+    /**
+     * 根据车牌号查询已出场会话（status='out_of_park'），用于再次入场
+     */
+    VisitorSession selectOutOfParkByCarNumber(@Param("communityId") Long communityId,
+                                              @Param("carNumber") String carNumber);
+
+    /**
      * 标记超时已通知
      */
     int updateTimeoutNotified(@Param("id") Long id, @Param("timeoutNotified") int timeoutNotified);

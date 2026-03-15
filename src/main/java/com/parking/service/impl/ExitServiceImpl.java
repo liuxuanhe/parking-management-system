@@ -6,7 +6,9 @@ import com.parking.dto.ExitExceptionHandleRequest;
 import com.parking.dto.ExitRequest;
 import com.parking.dto.ExitResponse;
 import com.parking.mapper.ParkingCarRecordMapper;
+import com.parking.mapper.VisitorSessionMapper;
 import com.parking.model.ParkingCarRecord;
+import com.parking.model.VisitorSession;
 import com.parking.service.CacheService;
 import com.parking.service.DistributedLockService;
 import com.parking.service.ExitService;
@@ -41,15 +43,18 @@ public class ExitServiceImpl implements ExitService {
     private final DistributedLockService distributedLockService;
     private final CacheService cacheService;
     private final NotificationService notificationService;
+    private final VisitorSessionMapper visitorSessionMapper;
 
     public ExitServiceImpl(ParkingCarRecordMapper parkingCarRecordMapper,
                            DistributedLockService distributedLockService,
                            CacheService cacheService,
-                           NotificationService notificationService) {
+                           NotificationService notificationService,
+                           VisitorSessionMapper visitorSessionMapper) {
         this.parkingCarRecordMapper = parkingCarRecordMapper;
         this.distributedLockService = distributedLockService;
         this.cacheService = cacheService;
         this.notificationService = notificationService;
+        this.visitorSessionMapper = visitorSessionMapper;
     }
 
     @Override
@@ -127,10 +132,9 @@ public class ExitServiceImpl implements ExitService {
         log.info("正常出场: recordId={}, carNumber={}, duration={}分钟",
                 entryRecord.getId(), entryRecord.getCarNumber(), duration);
 
-        // Visitor 车辆出场时累计停放时长（预留接口，当前仅打印日志）
+        // Visitor 车辆出场时累计停放时长
         if ("visitor".equals(entryRecord.getVehicleType())) {
-            log.info("Visitor 车辆出场，待累计停放时长: carNumber={}, duration={}分钟",
-                    entryRecord.getCarNumber(), duration);
+            handleVisitorExit(entryRecord.getCommunityId(), entryRecord.getCarNumber(), duration);
         }
 
         return buildResponse(entryRecord);
@@ -281,5 +285,26 @@ public class ExitServiceImpl implements ExitService {
 
         log.info("异常出场处理完成: recordId={}, adminId={}, handleRemark={}",
                 recordId, adminId, request.getHandleRemark());
+    }
+
+    /**
+     * 处理 Visitor 车辆出场时长累计
+     * 查询 visitor_session → 计算本次停放时长 → 累加 accumulated_duration → 更新状态为 out_of_park
+     */
+    void handleVisitorExit(Long communityId, String carNumber, int duration) {
+        // 查询该车牌对应的活跃会话（通过授权记录关联）
+        // 遍历查找 status='in_park' 的会话
+        VisitorSession session = visitorSessionMapper.selectActiveByCarNumber(communityId, carNumber);
+        if (session == null) {
+            log.warn("Visitor 出场但未找到活跃会话: communityId={}, carNumber={}", communityId, carNumber);
+            return;
+        }
+
+        // 累加停放时长
+        int newDuration = session.getAccumulatedDuration() + duration;
+        visitorSessionMapper.updateDurationAndStatus(session.getId(), newDuration, "out_of_park");
+
+        log.info("Visitor 出场时长累计: sessionId={}, carNumber={}, 本次={}分钟, 累计={}分钟",
+                session.getId(), carNumber, duration, newDuration);
     }
 }
