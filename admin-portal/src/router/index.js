@@ -52,6 +52,12 @@ const routes = [
         name: 'Reports',
         component: () => import('@/views/report/ReportView.vue'),
         meta: { requiresAuth: true }
+      },
+      {
+        path: '/zombie-vehicles',
+        name: 'ZombieVehicles',
+        component: () => import('@/views/zombie/ZombieVehicleView.vue'),
+        meta: { requiresAuth: true }
       }
     ]
   }
