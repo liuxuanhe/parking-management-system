@@ -40,4 +40,16 @@ public interface VehicleService {
      * @return 车牌查询响应
      */
     VehicleQueryResponse listVehicles(Long communityId, String houseNo);
+
+    /**
+     * 设置 Primary 车辆
+     * 获取分布式锁 → 行级锁查询 → 验证所有车辆不在场 → 验证无未完成入场申请 →
+     * 旧 Primary 改为 normal → 新车辆设为 primary → 失效缓存 → 记录操作日志
+     * Validates: Requirements 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9, 4.10
+     *
+     * @param vehicleId   目标车牌记录ID
+     * @param communityId 小区ID
+     * @param houseNo     房屋号
+     */
+    void setPrimaryVehicle(Long vehicleId, Long communityId, String houseNo);
 }

@@ -46,6 +46,9 @@ class VehicleServiceTest {
     @Mock
     private MaskingService maskingService;
 
+    @Mock
+    private DistributedLockService distributedLockService;
+
     private VehicleServiceImpl vehicleService;
 
     private static final Long COMMUNITY_ID = 1001L;
@@ -55,7 +58,7 @@ class VehicleServiceTest {
 
     @BeforeEach
     void setUp() {
-        vehicleService = new VehicleServiceImpl(carPlateMapper, ownerMapper, cacheService, maskingService);
+        vehicleService = new VehicleServiceImpl(carPlateMapper, ownerMapper, cacheService, maskingService, distributedLockService);
     }
 
     private VehicleAddRequest createValidRequest() {
@@ -495,6 +498,174 @@ class VehicleServiceTest {
             assertEquals("primary", item.getStatus());
             assertEquals(OWNER_ID, item.getOwnerId());
             assertNotNull(item.getCreateTime());
+        }
+    }
+
+    @Nested
+    @DisplayName("setPrimaryVehicle - 设置 Primary 车辆")
+    class SetPrimaryTests {
+
+        private static final Long VEHICLE_ID = 20001L;
+        private static final Long OTHER_VEHICLE_ID = 20002L;
+
+        private CarPlate createCarPlateForPrimary(Long id, String status) {
+            CarPlate cp = new CarPlate();
+            cp.setId(id);
+            cp.setCommunityId(COMMUNITY_ID);
+            cp.setHouseNo(HOUSE_NO);
+            cp.setOwnerId(OWNER_ID);
+            cp.setCarNumber("京A" + id);
+            cp.setStatus(status);
+            cp.setIsDeleted(0);
+            cp.setCreateTime(LocalDateTime.now());
+            return cp;
+        }
+
+        /**
+         * 模拟 executeWithLock：直接执行传入的 Supplier
+         */
+        private void mockLockExecution() {
+            when(distributedLockService.executeWithLock(anyString(), any()))
+                    .thenAnswer(invocation -> {
+                        java.util.function.Supplier<?> supplier = invocation.getArgument(1);
+                        return supplier.get();
+                    });
+        }
+
+        @Test
+        @DisplayName("正常切换 Primary 车辆：旧 Primary 变 normal，新车辆变 primary")
+        void setPrimary_success() {
+            // 准备数据：一辆 primary，一辆 normal
+            CarPlate primaryCar = createCarPlateForPrimary(OTHER_VEHICLE_ID, "primary");
+            CarPlate normalCar = createCarPlateForPrimary(VEHICLE_ID, "normal");
+            List<CarPlate> vehicles = List.of(primaryCar, normalCar);
+
+            mockLockExecution();
+            when(carPlateMapper.selectForUpdate(COMMUNITY_ID, HOUSE_NO)).thenReturn(vehicles);
+            when(carPlateMapper.updatePrimaryToNormal(COMMUNITY_ID, HOUSE_NO)).thenReturn(1);
+            when(carPlateMapper.updateStatusToPrimary(VEHICLE_ID)).thenReturn(1);
+            when(cacheService.generateKey("vehicles", COMMUNITY_ID, HOUSE_NO)).thenReturn("vehicles:1001:1-101");
+
+            vehicleService.setPrimaryVehicle(VEHICLE_ID, COMMUNITY_ID, HOUSE_NO);
+
+            verify(carPlateMapper).selectForUpdate(COMMUNITY_ID, HOUSE_NO);
+            verify(carPlateMapper).updatePrimaryToNormal(COMMUNITY_ID, HOUSE_NO);
+            verify(carPlateMapper).updateStatusToPrimary(VEHICLE_ID);
+            verify(cacheService).delete("vehicles:1001:1-101");
+        }
+
+        @Test
+        @DisplayName("目标车辆已是 Primary，幂等返回不执行更新")
+        void setPrimary_alreadyPrimary_idempotent() {
+            CarPlate primaryCar = createCarPlateForPrimary(VEHICLE_ID, "primary");
+            List<CarPlate> vehicles = List.of(primaryCar);
+
+            mockLockExecution();
+            when(carPlateMapper.selectForUpdate(COMMUNITY_ID, HOUSE_NO)).thenReturn(vehicles);
+
+            vehicleService.setPrimaryVehicle(VEHICLE_ID, COMMUNITY_ID, HOUSE_NO);
+
+            // 不应执行任何更新操作
+            verify(carPlateMapper, never()).updatePrimaryToNormal(anyLong(), anyString());
+            verify(carPlateMapper, never()).updateStatusToPrimary(anyLong());
+        }
+
+        @Test
+        @DisplayName("房屋号下有车辆在场（status=entered），拒绝切换并返回 PARKING_4001")
+        void setPrimary_vehicleInPark_throwsError() {
+            CarPlate enteredCar = createCarPlateForPrimary(OTHER_VEHICLE_ID, "entered");
+            CarPlate normalCar = createCarPlateForPrimary(VEHICLE_ID, "normal");
+            List<CarPlate> vehicles = List.of(enteredCar, normalCar);
+
+            mockLockExecution();
+            when(carPlateMapper.selectForUpdate(COMMUNITY_ID, HOUSE_NO)).thenReturn(vehicles);
+
+            BusinessException ex = assertThrows(BusinessException.class,
+                    () -> vehicleService.setPrimaryVehicle(VEHICLE_ID, COMMUNITY_ID, HOUSE_NO));
+            assertEquals(4001, ex.getCode());
+
+            verify(carPlateMapper, never()).updatePrimaryToNormal(anyLong(), anyString());
+            verify(carPlateMapper, never()).updateStatusToPrimary(anyLong());
+        }
+
+        @Test
+        @DisplayName("目标车辆不存在或不属于该房屋号，抛出参数错误")
+        void setPrimary_vehicleNotFound_throwsError() {
+            // 房屋号下只有一辆车，但不是目标 vehicleId
+            CarPlate otherCar = createCarPlateForPrimary(OTHER_VEHICLE_ID, "normal");
+            List<CarPlate> vehicles = List.of(otherCar);
+
+            mockLockExecution();
+            when(carPlateMapper.selectForUpdate(COMMUNITY_ID, HOUSE_NO)).thenReturn(vehicles);
+
+            BusinessException ex = assertThrows(BusinessException.class,
+                    () -> vehicleService.setPrimaryVehicle(VEHICLE_ID, COMMUNITY_ID, HOUSE_NO));
+            assertEquals(10000, ex.getCode()); // PARAM_ERROR
+        }
+
+        @Test
+        @DisplayName("房屋号下无车牌记录，抛出参数错误")
+        void setPrimary_noVehicles_throwsError() {
+            mockLockExecution();
+            when(carPlateMapper.selectForUpdate(COMMUNITY_ID, HOUSE_NO)).thenReturn(Collections.emptyList());
+
+            BusinessException ex = assertThrows(BusinessException.class,
+                    () -> vehicleService.setPrimaryVehicle(VEHICLE_ID, COMMUNITY_ID, HOUSE_NO));
+            assertEquals(10000, ex.getCode()); // PARAM_ERROR
+        }
+
+        @Test
+        @DisplayName("首次设置 Primary（之前无 Primary 车辆），直接设置成功")
+        void setPrimary_noPreviousPrimary_success() {
+            CarPlate normalCar1 = createCarPlateForPrimary(VEHICLE_ID, "normal");
+            CarPlate normalCar2 = createCarPlateForPrimary(OTHER_VEHICLE_ID, "normal");
+            List<CarPlate> vehicles = List.of(normalCar1, normalCar2);
+
+            mockLockExecution();
+            when(carPlateMapper.selectForUpdate(COMMUNITY_ID, HOUSE_NO)).thenReturn(vehicles);
+            when(carPlateMapper.updatePrimaryToNormal(COMMUNITY_ID, HOUSE_NO)).thenReturn(0); // 无旧 Primary
+            when(carPlateMapper.updateStatusToPrimary(VEHICLE_ID)).thenReturn(1);
+            when(cacheService.generateKey("vehicles", COMMUNITY_ID, HOUSE_NO)).thenReturn("vehicles:1001:1-101");
+
+            vehicleService.setPrimaryVehicle(VEHICLE_ID, COMMUNITY_ID, HOUSE_NO);
+
+            verify(carPlateMapper).updateStatusToPrimary(VEHICLE_ID);
+            verify(cacheService).delete("vehicles:1001:1-101");
+        }
+
+        @Test
+        @DisplayName("分布式锁正确获取和释放")
+        void setPrimary_distributedLockUsed() {
+            CarPlate normalCar = createCarPlateForPrimary(VEHICLE_ID, "normal");
+            List<CarPlate> vehicles = List.of(normalCar);
+
+            mockLockExecution();
+            when(carPlateMapper.selectForUpdate(COMMUNITY_ID, HOUSE_NO)).thenReturn(vehicles);
+            when(carPlateMapper.updatePrimaryToNormal(COMMUNITY_ID, HOUSE_NO)).thenReturn(0);
+            when(carPlateMapper.updateStatusToPrimary(VEHICLE_ID)).thenReturn(1);
+            when(cacheService.generateKey("vehicles", COMMUNITY_ID, HOUSE_NO)).thenReturn("vehicles:1001:1-101");
+
+            vehicleService.setPrimaryVehicle(VEHICLE_ID, COMMUNITY_ID, HOUSE_NO);
+
+            // 验证分布式锁被调用，锁键格式正确
+            verify(distributedLockService).executeWithLock(
+                    eq("lock:primary:" + COMMUNITY_ID + ":" + HOUSE_NO), any());
+        }
+
+        @Test
+        @DisplayName("updateStatusToPrimary 返回0行（更新失败），抛出异常")
+        void setPrimary_updateFails_throwsError() {
+            CarPlate normalCar = createCarPlateForPrimary(VEHICLE_ID, "normal");
+            List<CarPlate> vehicles = List.of(normalCar);
+
+            mockLockExecution();
+            when(carPlateMapper.selectForUpdate(COMMUNITY_ID, HOUSE_NO)).thenReturn(vehicles);
+            when(carPlateMapper.updatePrimaryToNormal(COMMUNITY_ID, HOUSE_NO)).thenReturn(0);
+            when(carPlateMapper.updateStatusToPrimary(VEHICLE_ID)).thenReturn(0); // 更新失败
+
+            BusinessException ex = assertThrows(BusinessException.class,
+                    () -> vehicleService.setPrimaryVehicle(VEHICLE_ID, COMMUNITY_ID, HOUSE_NO));
+            assertEquals(10000, ex.getCode()); // PARAM_ERROR
         }
     }
 }

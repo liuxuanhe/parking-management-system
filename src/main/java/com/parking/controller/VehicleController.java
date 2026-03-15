@@ -2,6 +2,7 @@ package com.parking.controller;
 
 import com.parking.common.ApiResponse;
 import com.parking.common.RequestContext;
+import com.parking.dto.SetPrimaryRequest;
 import com.parking.dto.VehicleAddRequest;
 import com.parking.dto.VehicleAddResponse;
 import com.parking.dto.VehicleQueryResponse;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -82,5 +84,24 @@ public class VehicleController {
         log.info("车牌查询请求: communityId={}, houseNo={}", communityId, houseNo);
         VehicleQueryResponse response = vehicleService.listVehicles(communityId, houseNo);
         return ApiResponse.success(response, RequestContext.getRequestId());
+    }
+
+    /**
+     * 设置 Primary 车辆接口
+     * PUT /api/v1/vehicles/{vehicleId}/primary
+     * 获取分布式锁 → 行级锁查询 → 验证所有车辆不在场 → 切换 Primary → 失效缓存
+     * Validates: Requirements 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9, 4.10
+     *
+     * @param vehicleId 目标车牌记录ID
+     * @param request   设置 Primary 请求
+     * @return 操作结果
+     */
+    @PutMapping("/{vehicleId}/primary")
+    public ApiResponse<Void> setPrimary(@PathVariable Long vehicleId,
+                                        @Valid @RequestBody SetPrimaryRequest request) {
+        log.info("设置 Primary 车辆请求: vehicleId={}, communityId={}, houseNo={}",
+                vehicleId, request.getCommunityId(), request.getHouseNo());
+        vehicleService.setPrimaryVehicle(vehicleId, request.getCommunityId(), request.getHouseNo());
+        return ApiResponse.success(RequestContext.getRequestId());
     }
 }

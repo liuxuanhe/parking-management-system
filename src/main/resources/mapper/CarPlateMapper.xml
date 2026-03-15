@@ -85,4 +85,38 @@
         ORDER BY create_time ASC
     </select>
 
+    <!-- 使用行级锁查询指定 Data_Domain 下所有未删除车牌（SELECT ... FOR UPDATE） -->
+    <!-- 用于 Primary 车辆切换时防止并发冲突 -->
+    <!-- Validates: Requirements 4.10 -->
+    <select id="selectForUpdate" resultType="com.parking.model.CarPlate">
+        SELECT id, community_id, house_no, owner_id, car_number,
+               car_brand, car_model, car_color, status,
+               is_deleted, create_time, update_time, deleted_time
+        FROM sys_car_plate
+        WHERE community_id = #{communityId}
+          AND house_no = #{houseNo}
+          AND is_deleted = 0
+        FOR UPDATE
+    </select>
+
+    <!-- 将指定 Data_Domain 下 status='primary' 的车牌更新为 normal -->
+    <!-- Validates: Requirements 4.8 -->
+    <update id="updatePrimaryToNormal">
+        UPDATE sys_car_plate
+        SET status = 'normal', update_time = NOW()
+        WHERE community_id = #{communityId}
+          AND house_no = #{houseNo}
+          AND status = 'primary'
+          AND is_deleted = 0
+    </update>
+
+    <!-- 将指定车牌的 status 更新为 primary -->
+    <!-- Validates: Requirements 4.8 -->
+    <update id="updateStatusToPrimary">
+        UPDATE sys_car_plate
+        SET status = 'primary', update_time = NOW()
+        WHERE id = #{id}
+          AND is_deleted = 0
+    </update>
+
 </mapper>

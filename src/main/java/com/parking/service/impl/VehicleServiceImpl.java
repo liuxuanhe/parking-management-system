@@ -12,6 +12,7 @@ import com.parking.mapper.OwnerMapper;
 import com.parking.model.CarPlate;
 import com.parking.model.Owner;
 import com.parking.service.CacheService;
+import com.parking.service.DistributedLockService;
 import com.parking.service.MaskingService;
 import com.parking.service.VehicleService;
 import lombok.extern.slf4j.Slf4j;
@@ -46,15 +47,18 @@ public class VehicleServiceImpl implements VehicleService {
     private final OwnerMapper ownerMapper;
     private final CacheService cacheService;
     private final MaskingService maskingService;
+    private final DistributedLockService distributedLockService;
 
     public VehicleServiceImpl(CarPlateMapper carPlateMapper,
                               OwnerMapper ownerMapper,
                               CacheService cacheService,
-                              MaskingService maskingService) {
+                              MaskingService maskingService,
+                              DistributedLockService distributedLockService) {
         this.carPlateMapper = carPlateMapper;
         this.ownerMapper = ownerMapper;
         this.cacheService = cacheService;
         this.maskingService = maskingService;
+        this.distributedLockService = distributedLockService;
     }
 
     @Override
@@ -198,5 +202,78 @@ public class VehicleServiceImpl implements VehicleService {
         log.debug("车牌查询结果已缓存: key={}, ttl={}分钟", cacheKey, VEHICLES_CACHE_TTL);
 
         return response;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void setPrimaryVehicle(Long vehicleId, Long communityId, String houseNo) {
+        // 使用分布式锁 + 行级锁双重保护（Requirements 4.10）
+        String lockKey = "lock:primary:" + communityId + ":" + houseNo;
+        distributedLockService.executeWithLock(lockKey, () -> {
+            doSetPrimary(vehicleId, communityId, houseNo);
+            return null;
+        });
+    }
+
+    /**
+     * 在分布式锁保护下执行 Primary 切换的核心逻辑
+     */
+    private void doSetPrimary(Long vehicleId, Long communityId, String houseNo) {
+        // 1. 行级锁查询该 Data_Domain 下所有车辆（Requirements 4.10）
+        List<CarPlate> vehicles = carPlateMapper.selectForUpdate(communityId, houseNo);
+        if (vehicles.isEmpty()) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR.getCode(), "该房屋号下无车牌记录");
+        }
+
+        // 2. 验证目标车辆存在且属于该 Data_Domain
+        CarPlate targetVehicle = vehicles.stream()
+                .filter(v -> v.getId().equals(vehicleId))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(ErrorCode.PARAM_ERROR.getCode(),
+                        "目标车辆不存在或不属于该房屋号"));
+
+        // 3. 如果目标车辆已经是 Primary，直接返回（幂等处理）
+        if ("primary".equals(targetVehicle.getStatus())) {
+            log.info("目标车辆已是 Primary，无需切换: vehicleId={}", vehicleId);
+            return;
+        }
+
+        // 4. 验证所有车辆均不在场（Requirements 4.2, 4.3）
+        // 简化实现：status 为 'entered' 视为在场
+        // 后续入场模块完善后改为查询 parking_car_record 分表
+        for (CarPlate v : vehicles) {
+            if ("entered".equals(v.getStatus())) {
+                throw new BusinessException(ErrorCode.PARKING_4001);
+            }
+        }
+
+        // 5. 验证原 Primary 车辆无未完成入场申请（Requirements 4.5, 4.6）
+        // 预留：后续入场模块完善后，查询 visitor_application 表中 status='submitted' 的记录
+        // 当前简化为日志记录
+        log.info("未完成入场申请检查预留: communityId={}, houseNo={}", communityId, houseNo);
+
+        // 6. 将旧 Primary 车辆状态更新为 normal（Requirements 4.8）
+        int normalizedCount = carPlateMapper.updatePrimaryToNormal(communityId, houseNo);
+        log.info("旧 Primary 车辆已更新为 normal: communityId={}, houseNo={}, 更新数量={}",
+                communityId, houseNo, normalizedCount);
+
+        // 7. 将目标车辆状态更新为 primary（Requirements 4.8）
+        int updatedCount = carPlateMapper.updateStatusToPrimary(vehicleId);
+        if (updatedCount == 0) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR.getCode(), "设置 Primary 车辆失败");
+        }
+
+        log.info("Primary 车辆设置成功: vehicleId={}, carNumber={}, communityId={}, houseNo={}",
+                vehicleId, targetVehicle.getCarNumber(), communityId, houseNo);
+
+        // 8. 失效缓存 vehicles:{communityId}:{houseNo}（Requirements 4.9）
+        String cacheKey = cacheService.generateKey(VEHICLES_CACHE_RESOURCE, communityId, houseNo);
+        cacheService.delete(cacheKey);
+        log.info("缓存已失效: key={}", cacheKey);
+
+        // 9. 记录操作日志预留（后续在审计日志模块中完善）
+        log.info("操作日志预留: Primary 车辆设置, requestId={}, vehicleId={}, carNumber={}, communityId={}, houseNo={}",
+                RequestContext.getRequestId(), vehicleId, targetVehicle.getCarNumber(),
+                communityId, houseNo);
     }
 }

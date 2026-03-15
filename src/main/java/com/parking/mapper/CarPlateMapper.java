@@ -4,6 +4,8 @@ import com.parking.model.CarPlate;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
+
 /**
  * 车牌 Mapper 接口
  * Validates: Requirements 3.1, 3.3, 14.2, 14.5
@@ -82,4 +84,48 @@ public interface CarPlateMapper {
      * @return 更新行数
      */
     int logicalDelete(@Param("id") Long id);
+
+    /**
+     * 查询指定 Data_Domain（community_id + house_no）下所有未删除车牌
+     * 支持同房屋号多业主场景，返回该房屋号下所有业主的车牌
+     * Validates: Requirements 11.1, 11.5
+     *
+     * @param communityId 小区ID
+     * @param houseNo 房屋号
+     * @return 车牌列表
+     */
+    List<CarPlate> selectByHouse(@Param("communityId") Long communityId,
+                                 @Param("houseNo") String houseNo);
+
+    /**
+     * 使用行级锁查询指定 Data_Domain 下所有未删除车牌（SELECT ... FOR UPDATE）
+     * 用于 Primary 车辆切换时防止并发冲突
+     * Validates: Requirements 4.10
+     *
+     * @param communityId 小区ID
+     * @param houseNo 房屋号
+     * @return 车牌列表（已加行级锁）
+     */
+    List<CarPlate> selectForUpdate(@Param("communityId") Long communityId,
+                                   @Param("houseNo") String houseNo);
+
+    /**
+     * 将指定 Data_Domain 下 status='primary' 的车牌更新为 normal
+     * Validates: Requirements 4.8
+     *
+     * @param communityId 小区ID
+     * @param houseNo 房屋号
+     * @return 更新行数
+     */
+    int updatePrimaryToNormal(@Param("communityId") Long communityId,
+                              @Param("houseNo") String houseNo);
+
+    /**
+     * 将指定车牌的 status 更新为 primary
+     * Validates: Requirements 4.8
+     *
+     * @param id 车牌记录ID
+     * @return 更新行数
+     */
+    int updateStatusToPrimary(@Param("id") Long id);
 }
