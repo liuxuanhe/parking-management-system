@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.parking.mapper.AdminMapper">
+
+    <!-- 插入管理员记录，返回自增主键 -->
+    <insert id="insert" parameterType="com.parking.model.Admin" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_admin (community_id, username, password, real_name, phone_number,
+                               role, status, login_fail_count, password_expire_time,
+                               must_change_password, create_time, update_time, is_deleted)
+        VALUES (#{communityId}, #{username}, #{password}, #{realName}, #{phoneNumber},
+                #{role}, #{status}, #{loginFailCount}, #{passwordExpireTime},
+                #{mustChangePassword}, NOW(), NOW(), 0)
+    </insert>
+
+    <!-- 根据用户名查询管理员 -->
+    <select id="selectByUsername" resultType="com.parking.model.Admin">
+        SELECT id, community_id, username, password, real_name, phone_number,
+               role, status, login_fail_count, last_login_time, last_login_ip,
+               password_expire_time, must_change_password,
+               create_time, update_time, is_deleted, deleted_time
+        FROM sys_admin
+        WHERE username = #{username} AND is_deleted = 0
+    </select>
+
+    <!-- 统计指定角色的管理员数量 -->
+    <select id="countByRole" resultType="int">
+        SELECT COUNT(*)
+        FROM sys_admin
+        WHERE role = #{role} AND is_deleted = 0
+    </select>
+
+    <!-- 更新管理员密码 -->
+    <update id="updatePassword">
+        UPDATE sys_admin
+        SET password = #{password},
+            must_change_password = #{mustChangePassword},
+            update_time = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+</mapper>
