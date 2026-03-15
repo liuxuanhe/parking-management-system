@@ -4,6 +4,9 @@ import com.parking.model.ParkingCarRecord;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 /**
  * 入场记录 Mapper 接口
  * 支持按月分表路由，表名格式: parking_car_record_yyyymm
@@ -72,4 +75,30 @@ public interface ParkingCarRecordMapper {
      */
     void updateExceptionHandle(@Param("tableName") String tableName,
                                @Param("record") ParkingCarRecord record);
+
+    /**
+     * 跨月分表查询入场记录（UNION ALL + 游标分页）
+     * 根据时间范围涉及的分表列表，使用 UNION ALL 合并查询结果，
+     * 基于 (enter_time, id) 游标分页
+     *
+     * @param tableNames  涉及的分表名称列表
+     * @param communityId 小区ID
+     * @param houseNo     房屋号
+     * @param startTime   查询开始时间
+     * @param endTime     查询结束时间
+     * @param cursorTime  游标时间（可选）
+     * @param cursorId    游标ID（可选）
+     * @param limit       查询条数
+     * @return 入场记录列表，按 enter_time DESC, id DESC 排序
+     */
+    List<ParkingCarRecord> selectRecordsByUnionAll(
+            @Param("tableNames") List<String> tableNames,
+            @Param("communityId") Long communityId,
+            @Param("houseNo") String houseNo,
+            @Param("startTime") LocalDateTime startTime,
+            @Param("endTime") LocalDateTime endTime,
+            @Param("cursorTime") LocalDateTime cursorTime,
+            @Param("cursorId") Long cursorId,
+            @Param("limit") int limit
+    );
 }

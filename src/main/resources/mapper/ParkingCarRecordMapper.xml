@@ -68,4 +68,27 @@
         WHERE id = #{record.id}
     </update>
 
+    <!-- 跨月分表查询入场记录（UNION ALL + 游标分页） -->
+    <select id="selectRecordsByUnionAll" resultType="com.parking.model.ParkingCarRecord">
+        SELECT * FROM (
+            <foreach collection="tableNames" item="tbl" separator=" UNION ALL ">
+                SELECT id, community_id, house_no, car_number, vehicle_type,
+                       enter_time, exit_time, duration, status,
+                       exception_reason, handler_admin_id, handle_time, handle_remark,
+                       create_time, update_time
+                FROM ${tbl}
+                WHERE community_id = #{communityId}
+                  AND house_no = #{houseNo}
+                  AND enter_time &gt;= #{startTime}
+                  AND enter_time &lt;= #{endTime}
+                <if test="cursorTime != null and cursorId != null">
+                  AND (enter_time &lt; #{cursorTime}
+                       OR (enter_time = #{cursorTime} AND id &lt; #{cursorId}))
+                </if>
+            </foreach>
+        ) AS combined
+        ORDER BY enter_time DESC, id DESC
+        LIMIT #{limit}
+    </select>
+
 </mapper>
