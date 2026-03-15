@@ -94,4 +94,14 @@
             update_time = NOW()
     </insert>
 
+    <!-- 按日期范围查询每日统计数据 -->
+    <select id="selectByDateRange" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM parking_stat_daily
+        WHERE community_id = #{communityId}
+          AND stat_date &gt;= #{startDate}
+          AND stat_date &lt;= #{endDate}
+        ORDER BY stat_date ASC
+    </select>
+
 </mapper>

@@ -37,4 +37,11 @@ public interface ParkingStatDailyMapper {
      * 如果当天记录不存在则插入，存在则全量覆盖
      */
     int upsertDailyStat(ParkingStatDaily stat);
+
+    /**
+     * 按日期范围查询每日统计数据
+     */
+    java.util.List<ParkingStatDaily> selectByDateRange(@Param("communityId") Long communityId,
+                                                        @Param("startDate") LocalDate startDate,
+                                                        @Param("endDate") LocalDate endDate);
 }
