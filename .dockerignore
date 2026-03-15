@@ -1,0 +1,10 @@
+.git
+.gitignore
+.kiro
+.vscode
+.idea
+*.md
+target
+admin-portal/node_modules
+admin-portal/dist
+owner-app/node_modules
