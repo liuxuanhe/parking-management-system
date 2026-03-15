@@ -1,6 +1,7 @@
 package com.parking.service.impl;
 
 import com.parking.dto.EntryTrendResponse;
+import com.parking.dto.PeakHoursResponse;
 import com.parking.dto.SpaceUsageResponse;
 import com.parking.mapper.ParkingConfigMapper;
 import com.parking.mapper.ParkingStatDailyMapper;
@@ -141,6 +142,46 @@ public class ReportServiceImpl implements ReportService {
         } else {
             item.setUsageRate(0.0);
         }
+        return item;
+    }
+
+    @Override
+    public PeakHoursResponse getPeakHours(Long communityId, LocalDate startDate, LocalDate endDate) {
+        // 1. 尝试从缓存获取
+        String cacheKey = "report:peak_hours:" + communityId + ":" + startDate + ":" + endDate;
+        Optional<Object> cached = cacheService.get(cacheKey);
+        if (cached.isPresent() && cached.get() instanceof PeakHoursResponse) {
+            log.debug("峰值时段报表命中缓存: communityId={}", communityId);
+            return (PeakHoursResponse) cached.get();
+        }
+
+        // 2. 从预聚合表查询
+        List<ParkingStatDaily> dailyStats = parkingStatDailyMapper.selectByDateRange(
+                communityId, startDate, endDate);
+
+        // 3. 转换为响应 DTO
+        PeakHoursResponse response = new PeakHoursResponse();
+        List<PeakHoursResponse.PeakItem> items = dailyStats.stream()
+                .map(this::toPeakItem)
+                .collect(Collectors.toList());
+        response.setItems(items);
+
+        // 4. 写入缓存
+        cacheService.set(cacheKey, response, CACHE_EXPIRE_HOURS, TimeUnit.HOURS);
+
+        log.info("峰值时段报表查询完成: communityId={}, 日期范围={} ~ {}, 数据条数={}",
+                communityId, startDate, endDate, items.size());
+        return response;
+    }
+
+    /**
+     * 将预聚合实体转换为峰值时段项
+     */
+    private PeakHoursResponse.PeakItem toPeakItem(ParkingStatDaily stat) {
+        PeakHoursResponse.PeakItem item = new PeakHoursResponse.PeakItem();
+        item.setDate(stat.getStatDate());
+        item.setPeakHour(stat.getPeakHour() != null ? stat.getPeakHour() : 0);
+        item.setPeakCount(stat.getPeakCount() != null ? stat.getPeakCount() : 0);
         return item;
     }
 }

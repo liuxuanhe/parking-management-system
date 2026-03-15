@@ -1,6 +1,7 @@
 package com.parking.service;
 
 import com.parking.dto.EntryTrendResponse;
+import com.parking.dto.PeakHoursResponse;
 import com.parking.dto.SpaceUsageResponse;
 import com.parking.mapper.ParkingConfigMapper;
 import com.parking.mapper.ParkingStatDailyMapper;
@@ -240,6 +241,84 @@ class ReportServiceTest {
         stat.setTotalEntryCount(entry);
         stat.setTotalExitCount(exit);
         stat.setAvgParkingDuration(avgDuration);
+        return stat;
+    }
+
+    // ========== getPeakHours 测试 ==========
+
+    @Test
+    @DisplayName("峰值时段 - 缓存命中直接返回")
+    void getPeakHours_cacheHit() {
+        PeakHoursResponse cached = new PeakHoursResponse();
+        cached.setItems(Collections.emptyList());
+        when(cacheService.get(anyString())).thenReturn(Optional.of(cached));
+
+        PeakHoursResponse result = reportService.getPeakHours(COMMUNITY_ID, START_DATE, END_DATE);
+
+        assertSame(cached, result);
+        verify(parkingStatDailyMapper, never()).selectByDateRange(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("峰值时段 - 缓存未命中正常查询")
+    void getPeakHours_cacheMiss() {
+        when(cacheService.get(anyString())).thenReturn(Optional.empty());
+
+        ParkingStatDaily stat1 = buildStatWithPeak(LocalDate.of(2026, 1, 1), 8, 120);
+        ParkingStatDaily stat2 = buildStatWithPeak(LocalDate.of(2026, 1, 2), 18, 95);
+        when(parkingStatDailyMapper.selectByDateRange(COMMUNITY_ID, START_DATE, END_DATE))
+                .thenReturn(List.of(stat1, stat2));
+
+        PeakHoursResponse result = reportService.getPeakHours(COMMUNITY_ID, START_DATE, END_DATE);
+
+        assertNotNull(result);
+        assertEquals(2, result.getItems().size());
+        assertEquals(8, result.getItems().get(0).getPeakHour());
+        assertEquals(120, result.getItems().get(0).getPeakCount());
+        assertEquals(18, result.getItems().get(1).getPeakHour());
+        assertEquals(95, result.getItems().get(1).getPeakCount());
+
+        verify(cacheService).set(anyString(), eq(result), eq(1L), any());
+    }
+
+    @Test
+    @DisplayName("峰值时段 - null 字段转换为 0")
+    void getPeakHours_nullFields() {
+        when(cacheService.get(anyString())).thenReturn(Optional.empty());
+
+        ParkingStatDaily stat = new ParkingStatDaily();
+        stat.setStatDate(LocalDate.of(2026, 1, 1));
+        stat.setCommunityId(COMMUNITY_ID);
+        // peakHour 和 peakCount 为 null
+        when(parkingStatDailyMapper.selectByDateRange(COMMUNITY_ID, START_DATE, END_DATE))
+                .thenReturn(List.of(stat));
+
+        PeakHoursResponse result = reportService.getPeakHours(COMMUNITY_ID, START_DATE, END_DATE);
+
+        assertEquals(1, result.getItems().size());
+        assertEquals(0, result.getItems().get(0).getPeakHour());
+        assertEquals(0, result.getItems().get(0).getPeakCount());
+    }
+
+    @Test
+    @DisplayName("峰值时段 - 无数据返回空列表")
+    void getPeakHours_noData() {
+        when(cacheService.get(anyString())).thenReturn(Optional.empty());
+        when(parkingStatDailyMapper.selectByDateRange(COMMUNITY_ID, START_DATE, END_DATE))
+                .thenReturn(Collections.emptyList());
+
+        PeakHoursResponse result = reportService.getPeakHours(COMMUNITY_ID, START_DATE, END_DATE);
+
+        assertNotNull(result);
+        assertTrue(result.getItems().isEmpty());
+    }
+
+    private ParkingStatDaily buildStatWithPeak(LocalDate date, int peakHour, int peakCount) {
+        ParkingStatDaily stat = new ParkingStatDaily();
+        stat.setCommunityId(COMMUNITY_ID);
+        stat.setStatDate(date);
+        stat.setPeakHour(peakHour);
+        stat.setPeakCount(peakCount);
         return stat;
     }
 }

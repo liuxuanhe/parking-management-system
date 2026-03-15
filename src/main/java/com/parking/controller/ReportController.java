@@ -3,6 +3,7 @@ package com.parking.controller;
 import com.parking.common.ApiResponse;
 import com.parking.common.RequestContext;
 import com.parking.dto.EntryTrendResponse;
+import com.parking.dto.PeakHoursResponse;
 import com.parking.dto.SpaceUsageResponse;
 import com.parking.service.ReportService;
 import lombok.RequiredArgsConstructor;
@@ -63,6 +64,25 @@ public class ReportController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         log.info("查询车位使用率报表: communityId={}, {} ~ {}", communityId, startDate, endDate);
         SpaceUsageResponse response = reportService.getSpaceUsage(communityId, startDate, endDate);
+        return ApiResponse.success(response, RequestContext.getRequestId());
+    }
+
+    /**
+     * 查询峰值时段报表
+     * GET /api/v1/reports/peak-hours?communityId={}&startDate={}&endDate={}
+     *
+     * @param communityId 小区ID
+     * @param startDate   开始日期
+     * @param endDate     结束日期
+     * @return 峰值时段数据
+     */
+    @GetMapping("/peak-hours")
+    public ApiResponse<PeakHoursResponse> getPeakHours(
+            @RequestParam Long communityId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        log.info("查询峰值时段报表: communityId={}, {} ~ {}", communityId, startDate, endDate);
+        PeakHoursResponse response = reportService.getPeakHours(communityId, startDate, endDate);
         return ApiResponse.success(response, RequestContext.getRequestId());
     }
 }
