@@ -6,6 +6,7 @@ import com.parking.dto.VisitorApplyRequest;
 import com.parking.dto.VisitorApplyResponse;
 import com.parking.dto.VisitorAuditRequest;
 import com.parking.dto.VisitorQueryResponse;
+import com.parking.dto.VisitorQuotaResponse;
 import com.parking.service.VisitorService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -72,5 +73,17 @@ public class VisitorController {
         log.info("查询 Visitor 权限列表: communityId={}, houseNo={}", communityId, houseNo);
         List<VisitorQueryResponse> result = visitorService.listVisitors(communityId, houseNo);
         return ApiResponse.success(result, RequestContext.getRequestId());
+    }
+
+    /**
+     * 查询 Visitor 月度配额
+     * GET /api/v1/visitors/quota
+     */
+    @GetMapping("/quota")
+    public ApiResponse<VisitorQuotaResponse> getQuota(@RequestParam Long communityId,
+                                                       @RequestParam String houseNo) {
+        log.info("查询 Visitor 月度配额: communityId={}, houseNo={}", communityId, houseNo);
+        VisitorQuotaResponse response = visitorService.getQuota(communityId, houseNo);
+        return ApiResponse.success(response, RequestContext.getRequestId());
     }
 }

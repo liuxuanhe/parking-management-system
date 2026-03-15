@@ -4,6 +4,7 @@ import com.parking.dto.VisitorApplyRequest;
 import com.parking.dto.VisitorApplyResponse;
 import com.parking.dto.VisitorAuditRequest;
 import com.parking.dto.VisitorQueryResponse;
+import com.parking.dto.VisitorQuotaResponse;
 
 /**
  * Visitor 权限服务接口
@@ -42,4 +43,13 @@ public interface VisitorService {
      * @return Visitor 查询响应列表
      */
     java.util.List<VisitorQueryResponse> listVisitors(Long communityId, String houseNo);
+
+    /**
+     * 查询月度配额使用情况
+     *
+     * @param communityId 小区ID
+     * @param houseNo     房屋号
+     * @return 配额查询响应
+     */
+    VisitorQuotaResponse getQuota(Long communityId, String houseNo);
 }

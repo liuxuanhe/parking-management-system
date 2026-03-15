@@ -5,6 +5,7 @@ import com.parking.dto.VisitorApplyRequest;
 import com.parking.dto.VisitorApplyResponse;
 import com.parking.dto.VisitorAuditRequest;
 import com.parking.dto.VisitorQueryResponse;
+import com.parking.dto.VisitorQuotaResponse;
 import com.parking.mapper.CarPlateMapper;
 import com.parking.mapper.VisitorApplicationMapper;
 import com.parking.mapper.VisitorAuthorizationMapper;
@@ -20,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.Collections;
 import java.util.List;
 
@@ -247,5 +249,61 @@ class VisitorServiceTest {
         List<VisitorQueryResponse> result = visitorService.listVisitors(COMMUNITY_ID, HOUSE_NO);
 
         assertTrue(result.isEmpty());
+    }
+
+    // ========== getQuota 测试 ==========
+
+    @Test
+    @DisplayName("配额查询 - 正常使用量，未接近超限")
+    void getQuota_shouldReturnNormalUsage() {
+        YearMonth currentMonth = YearMonth.now();
+        when(visitorQuotaManager.calculateMonthlyUsage(COMMUNITY_ID, HOUSE_NO, currentMonth)).thenReturn(1000L);
+
+        VisitorQuotaResponse response = visitorService.getQuota(COMMUNITY_ID, HOUSE_NO);
+
+        assertEquals(4320L, response.getTotalQuotaMinutes());
+        assertEquals(1000L, response.getUsedMinutes());
+        assertEquals(3320L, response.getRemainingMinutes());
+        assertFalse(response.isNearLimit());
+        assertEquals(currentMonth.toString(), response.getMonth());
+    }
+
+    @Test
+    @DisplayName("配额查询 - 使用量 ≥ 3600分钟，接近超限提醒")
+    void getQuota_shouldFlagNearLimitWhenUsageHigh() {
+        YearMonth currentMonth = YearMonth.now();
+        when(visitorQuotaManager.calculateMonthlyUsage(COMMUNITY_ID, HOUSE_NO, currentMonth)).thenReturn(3600L);
+
+        VisitorQuotaResponse response = visitorService.getQuota(COMMUNITY_ID, HOUSE_NO);
+
+        assertEquals(3600L, response.getUsedMinutes());
+        assertEquals(720L, response.getRemainingMinutes());
+        assertTrue(response.isNearLimit());
+    }
+
+    @Test
+    @DisplayName("配额查询 - 使用量超过总配额，剩余为0")
+    void getQuota_shouldReturnZeroRemainingWhenExceeded() {
+        YearMonth currentMonth = YearMonth.now();
+        when(visitorQuotaManager.calculateMonthlyUsage(COMMUNITY_ID, HOUSE_NO, currentMonth)).thenReturn(5000L);
+
+        VisitorQuotaResponse response = visitorService.getQuota(COMMUNITY_ID, HOUSE_NO);
+
+        assertEquals(5000L, response.getUsedMinutes());
+        assertEquals(0L, response.getRemainingMinutes());
+        assertTrue(response.isNearLimit());
+    }
+
+    @Test
+    @DisplayName("配额查询 - 零使用量")
+    void getQuota_shouldReturnFullQuotaWhenNoUsage() {
+        YearMonth currentMonth = YearMonth.now();
+        when(visitorQuotaManager.calculateMonthlyUsage(COMMUNITY_ID, HOUSE_NO, currentMonth)).thenReturn(0L);
+
+        VisitorQuotaResponse response = visitorService.getQuota(COMMUNITY_ID, HOUSE_NO);
+
+        assertEquals(0L, response.getUsedMinutes());
+        assertEquals(4320L, response.getRemainingMinutes());
+        assertFalse(response.isNearLimit());
     }
 }

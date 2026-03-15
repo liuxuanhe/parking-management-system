@@ -7,6 +7,7 @@ import com.parking.dto.VisitorApplyRequest;
 import com.parking.dto.VisitorApplyResponse;
 import com.parking.dto.VisitorAuditRequest;
 import com.parking.dto.VisitorQueryResponse;
+import com.parking.dto.VisitorQuotaResponse;
 import com.parking.mapper.CarPlateMapper;
 import com.parking.mapper.VisitorApplicationMapper;
 import com.parking.mapper.VisitorAuthorizationMapper;
@@ -25,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -197,5 +199,33 @@ public class VisitorServiceImpl implements VisitorService {
 
         log.info("查询 Visitor 权限列表, communityId={}, houseNo={}, 数量={}", communityId, houseNo, result.size());
         return result;
+    }
+
+    /** 月度总配额：72小时 = 4320分钟 */
+    private static final long MONTHLY_QUOTA_MINUTES = 4320L;
+    /** 接近超限阈值：60小时 = 3600分钟 */
+    private static final long NEAR_LIMIT_MINUTES = 3600L;
+
+    @Override
+    public VisitorQuotaResponse getQuota(Long communityId, String houseNo) {
+        YearMonth currentMonth = YearMonth.now();
+        long usedMinutes = visitorQuotaManager.calculateMonthlyUsage(communityId, houseNo, currentMonth);
+        long remaining = Math.max(0, MONTHLY_QUOTA_MINUTES - usedMinutes);
+
+        VisitorQuotaResponse response = new VisitorQuotaResponse();
+        response.setTotalQuotaMinutes(MONTHLY_QUOTA_MINUTES);
+        response.setUsedMinutes(usedMinutes);
+        response.setRemainingMinutes(remaining);
+        response.setNearLimit(usedMinutes >= NEAR_LIMIT_MINUTES);
+        response.setMonth(currentMonth.toString());
+
+        if (usedMinutes >= NEAR_LIMIT_MINUTES) {
+            log.warn("Visitor 月度配额接近超限, communityId={}, houseNo={}, 已使用={}分钟",
+                    communityId, houseNo, usedMinutes);
+        }
+
+        log.info("查询 Visitor 月度配额, communityId={}, houseNo={}, 已使用={}分钟, 剩余={}分钟",
+                communityId, houseNo, usedMinutes, remaining);
+        return response;
     }
 }
