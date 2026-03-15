@@ -69,7 +69,7 @@ const antStubs = {
   'a-input': { template: '<input />' },
   'a-input-password': { template: '<input type="password" />' },
   'a-button': { template: '<button type="submit"><slot /></button>' },
-  'a-modal': { template: '<div v-if="open"><slot /></div>', props: ['open'] },
+  'a-modal': { template: '<div v-if="visible"><slot /></div>', props: ['visible'] },
   'a-alert': { template: '<div />' },
   'a-progress': { template: '<div />' }
 }

@@ -84,7 +84,7 @@ describe('Bug 条件测试：mustChangePassword=true 时的登录行为', () => 
           'a-input': { template: '<input />' },
           'a-input-password': { template: '<input type="password" />' },
           'a-button': { template: '<button type="submit"><slot /></button>' },
-          'a-modal': { template: '<div v-if="open"><slot /></div>', props: ['open'] },
+          'a-modal': { template: '<div v-if="visible"><slot /></div>', props: ['visible'] },
           'a-alert': { template: '<div />' },
           'a-progress': { template: '<div />' }
         }
@@ -122,7 +122,7 @@ describe('Bug 条件测试：mustChangePassword=true 时的登录行为', () => 
           'a-input': { template: '<input />' },
           'a-input-password': { template: '<input type="password" />' },
           'a-button': { template: '<button type="submit"><slot /></button>' },
-          'a-modal': { template: '<div v-if="open"><slot /></div>', props: ['open'] },
+          'a-modal': { template: '<div v-if="visible"><slot /></div>', props: ['visible'] },
           'a-alert': { template: '<div />' },
           'a-progress': { template: '<div />' }
         }
@@ -158,7 +158,7 @@ describe('Bug 条件测试：mustChangePassword=true 时的登录行为', () => 
           'a-input': { template: '<input />' },
           'a-input-password': { template: '<input type="password" />' },
           'a-button': { template: '<button type="submit"><slot /></button>' },
-          'a-modal': { template: '<div v-if="open"><slot /></div>', props: ['open'] },
+          'a-modal': { template: '<div v-if="visible"><slot /></div>', props: ['visible'] },
           'a-alert': { template: '<div />' },
           'a-progress': { template: '<div />' }
         }

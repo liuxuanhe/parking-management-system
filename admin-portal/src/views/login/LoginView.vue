@@ -49,7 +49,7 @@
 
     <!-- 首次登录强制修改密码对话框 -->
     <a-modal
-      v-model:open="changePasswordVisible"
+      v-model:visible="changePasswordVisible"
       title="首次登录 — 请修改初始密码"
       :closable="false"
       :maskClosable="false"
