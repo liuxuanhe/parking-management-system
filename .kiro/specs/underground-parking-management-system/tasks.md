@@ -444,7 +444,7 @@
   - 验证审计日志完整性
   - 确保所有测试通过，询问用户是否有问题
 
-- [-] 10. Visitor 权限模块实现
+- [x] 10. Visitor 权限模块实现
   - [x] 10.1 实现 Visitor 配额管理器
     - 创建 VisitorQuotaManager 接口和实现类
     - 实现 calculateMonthlyUsage() 计算月度配额使用量
@@ -536,21 +536,21 @@
     - 记录操作日志
     - _Requirements: 8.9, 8.10_
 
-  - [-] 10.12 实现 Visitor 24小时未入场自动取消定时任务
+  - [x] 10.12 实现 Visitor 24小时未入场自动取消定时任务
     - 创建定时任务 (每小时执行)
     - 查询 status='approved_pending_activation' 且超过 expire_time 的授权
     - 更新状态为 canceled_no_entry
     - 记录操作日志
     - _Requirements: 8.3_
 
-  - [ ] 10.13 实现 Visitor 权限查询接口
+  - [x] 10.13 实现 Visitor 权限查询接口
     - 实现 GET /api/v1/visitors 接口
     - 使用 community_id + house_no 查询
     - 返回房屋号下所有 Visitor 申请和授权
     - 执行数据脱敏
     - _Requirements: 11.3_
 
-  - [ ] 10.14 实现月度配额查询接口
+  - [x] 10.14 实现月度配额查询接口
     - 实现 GET /api/v1/visitors/quota 接口
     - 计算当月累计使用时长
     - 返回已使用时长和剩余时长
@@ -565,7 +565,7 @@
     - _Requirements: 10.2, 10.3, 10.4, 10.7_
 
 - [ ] 11. 报表统计模块实现
-  - [ ] 11.1 实现预聚合表增量更新
+  - [x] 11.1 实现预聚合表增量更新
     - 在 EntryService 和 ExitService 中添加统计更新逻辑
     - 车辆入场时增量更新 parking_stat_daily.total_entry_count
     - 车辆出场时增量更新 parking_stat_daily.total_exit_count
@@ -573,7 +573,7 @@
     - 更新 avg_parking_duration
     - _Requirements: 21.4_
 
-  - [ ] 11.2 实现预聚合表定时回补任务
+  - [x] 11.2 实现预聚合表定时回补任务
     - 创建定时任务 (每日凌晨2点执行)
     - 回补前一日完整统计数据
     - 计算峰值时段和峰值车辆数
@@ -581,7 +581,7 @@
     - _Requirements: 21.5_
 
 
-  - [ ] 11.3 实现入场趋势报表接口
+  - [x] 11.3 实现入场趋势报表接口
     - 创建 ReportController 和 ReportService
     - 实现 GET /api/v1/reports/entry-trend 接口
     - 查询 parking_stat_daily 表
@@ -590,21 +590,21 @@
     - 确保1年数据查询在3秒内返回
     - _Requirements: 21.1, 21.2, 21.7_
 
-  - [ ] 11.4 实现车位使用率报表接口
+  - [x] 11.4 实现车位使用率报表接口
     - 实现 GET /api/v1/reports/space-usage 接口
     - 计算车位使用率 = 平均在场车辆数 / total_spaces
     - 使用预聚合表提升性能
     - 使用 Redis 缓存
     - _Requirements: 21.1, 21.2_
 
-  - [ ] 11.5 实现峰值时段报表接口
+  - [x] 11.5 实现峰值时段报表接口
     - 实现 GET /api/v1/reports/peak-hours 接口
     - 查询 parking_stat_daily.peak_hour 和 peak_count
     - 分析高峰时段分布
     - 使用 Redis 缓存
     - _Requirements: 21.1, 21.2_
 
-  - [ ] 11.6 实现僵尸车辆统计报表接口
+  - [x] 11.6 实现僵尸车辆统计报表接口
     - 实现 GET /api/v1/reports/zombie-vehicles 接口
     - 查询 parking_stat_daily.zombie_vehicle_count
     - 统计僵尸车辆数量和处理情况
@@ -618,20 +618,20 @@
     - _Requirements: 21.2, 21.6, 21.7_
 
 - [ ] 12. 僵尸车辆识别与处理模块实现
-  - [ ] 12.1 实现僵尸车辆识别定时任务
+  - [x] 12.1 实现僵尸车辆识别定时任务
     - 创建定时任务 (每日执行)
     - 查询 status='entered' 且 (当前时间 - enter_time) > 7天的车辆
     - 创建 zombie_vehicle 记录，状态为 unhandled
     - 发送通知给物业管理员
     - _Requirements: 22.1, 22.2, 22.3, 22.4_
 
-  - [ ] 12.2 实现僵尸车辆查询接口
+  - [x] 12.2 实现僵尸车辆查询接口
     - 实现 GET /api/v1/zombie-vehicles 接口
     - 查询僵尸车辆列表
     - 支持按状态筛选
     - _Requirements: 22.9_
 
-  - [ ] 12.3 实现僵尸车辆处理接口
+  - [x] 12.3 实现僵尸车辆处理接口
     - 实现 POST /api/v1/zombie-vehicles/{zombieId}/handle 接口
     - 支持处理方式: contacted, resolved, ignored
     - 填写对应的处理记录
@@ -646,7 +646,7 @@
     - _Requirements: 22.1, 22.2, 22.4, 22.5_
 
 - [ ] 13. 审计日志模块实现
-  - [ ] 13.1 实现操作日志记录切面
+  - [x] 13.1 实现操作日志记录切面
     - 创建 OperationLogAspect 切面
     - 拦截所有写操作 (创建、更新、删除)
     - 记录 request_id, community_id, 操作人, IP, 操作时间, 操作类型, before/after 状态
@@ -654,7 +654,7 @@
     - 确保日志不可删除、不可篡改
     - _Requirements: 18.1, 18.2, 18.5, 18.6_
 
-  - [ ] 13.2 实现访问日志记录拦截器
+  - [-] 13.2 实现访问日志记录拦截器
     - 创建 AccessLogInterceptor 拦截器
     - 记录所有查询操作和接口访问
     - 记录 request_id, community_id, 访问人, IP, 访问时间, 接口路径, 查询参数, 响应结果

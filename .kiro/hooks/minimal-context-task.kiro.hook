@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "最小上下文执行任务",
+  "description": "在每个子任务开始执行前，强制 agent 采用最小上下文策略，只读取当前任务直接相关的文件，避免上下文膨胀和 token 浪费。",
+  "version": "1",
+  "when": {
+    "type": "preTaskExecution"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "【最小上下文策略 - 强制执行】\n\n你正在开始一个新任务。为节省 token 和控制上下文长度，必须遵守以下规则：\n\n1. 禁止读取与当前任务无关的源码文件。只读取 tasks.md 中当前任务描述里明确提到的类/接口/文件。\n2. 不要重新读取整个 requirements.md 或 design.md，只在需要确认具体 Requirement 编号的细节时，用 readFile 的 start_line/end_line 精确读取相关段落。\n3. 不要回顾或总结之前任务的执行情况。当前任务是独立的。\n4. 代码实现时，优先使用 readCode 的 selector 参数定位具体类/方法，避免读取整个大文件。\n5. 完成后只报告：创建/修改了哪些文件、测试是否通过、git commit 信息。不要做冗长总结。"
+  }
+}
