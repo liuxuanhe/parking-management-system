@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.parking.mapper.VisitorAuthorizationMapper">
+
+    <resultMap id="BaseResultMap" type="com.parking.model.VisitorAuthorization">
+        <id column="id" property="id"/>
+        <result column="community_id" property="communityId"/>
+        <result column="house_no" property="houseNo"/>
+        <result column="application_id" property="applicationId"/>
+        <result column="car_plate_id" property="carPlateId"/>
+        <result column="car_number" property="carNumber"/>
+        <result column="status" property="status"/>
+        <result column="start_time" property="startTime"/>
+        <result column="expire_time" property="expireTime"/>
+        <result column="activation_time" property="activationTime"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="deleted_time" property="deletedTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, community_id, house_no, application_id, car_plate_id, car_number,
+        status, start_time, expire_time, activation_time,
+        create_time, update_time, is_deleted, deleted_time
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO visitor_authorization (community_id, house_no, application_id,
+                                           car_plate_id, car_number, status,
+                                           start_time, expire_time,
+                                           create_time, update_time, is_deleted)
+        VALUES (#{communityId}, #{houseNo}, #{applicationId},
+                #{carPlateId}, #{carNumber}, #{status},
+                #{startTime}, #{expireTime},
+                NOW(), NOW(), 0)
+    </insert>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM visitor_authorization
+        WHERE id = #{id} AND is_deleted = 0
+    </select>
+
+    <select id="selectPendingActivation" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM visitor_authorization
+        WHERE community_id = #{communityId}
+          AND car_number = #{carNumber}
+          AND status = 'approved_pending_activation'
+          AND is_deleted = 0
+        ORDER BY create_time DESC
+        LIMIT 1
+    </select>
+
+    <update id="updateStatus">
+        UPDATE visitor_authorization
+        SET status = #{status},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectExpiredPendingActivation" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM visitor_authorization
+        WHERE status = 'approved_pending_activation'
+          AND expire_time &lt; NOW()
+          AND is_deleted = 0
+    </select>
+
+    <update id="updateToUnavailable">
+        UPDATE visitor_authorization
+        SET status = 'unavailable',
+            update_time = NOW()
+        WHERE community_id = #{communityId}
+          AND status = 'approved_pending_activation'
+          AND is_deleted = 0
+    </update>
+
+    <select id="selectByHouse" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM visitor_authorization
+        WHERE community_id = #{communityId}
+          AND house_no = #{houseNo}
+          AND is_deleted = 0
+        ORDER BY create_time DESC
+    </select>
+
+</mapper>

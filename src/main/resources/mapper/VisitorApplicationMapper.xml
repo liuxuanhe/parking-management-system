@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.parking.mapper.VisitorApplicationMapper">
+
+    <resultMap id="BaseResultMap" type="com.parking.model.VisitorApplication">
+        <id column="id" property="id"/>
+        <result column="community_id" property="communityId"/>
+        <result column="house_no" property="houseNo"/>
+        <result column="owner_id" property="ownerId"/>
+        <result column="car_plate_id" property="carPlateId"/>
+        <result column="car_number" property="carNumber"/>
+        <result column="apply_reason" property="applyReason"/>
+        <result column="status" property="status"/>
+        <result column="reject_reason" property="rejectReason"/>
+        <result column="audit_admin_id" property="auditAdminId"/>
+        <result column="audit_time" property="auditTime"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="deleted_time" property="deletedTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, community_id, house_no, owner_id, car_plate_id, car_number,
+        apply_reason, status, reject_reason, audit_admin_id, audit_time,
+        create_time, update_time, is_deleted, deleted_time
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO visitor_application (community_id, house_no, owner_id, car_plate_id,
+                                         car_number, apply_reason, status,
+                                         create_time, update_time, is_deleted)
+        VALUES (#{communityId}, #{houseNo}, #{ownerId}, #{carPlateId},
+                #{carNumber}, #{applyReason}, #{status},
+                NOW(), NOW(), 0)
+    </insert>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM visitor_application
+        WHERE id = #{id} AND is_deleted = 0
+    </select>
+
+    <select id="selectByIdForUpdate" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM visitor_application
+        WHERE id = #{id} AND is_deleted = 0
+        FOR UPDATE
+    </select>
+
+    <update id="updateStatus">
+        UPDATE visitor_application
+        SET status = #{status},
+            reject_reason = #{rejectReason},
+            audit_admin_id = #{auditAdminId},
+            audit_time = NOW(),
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectByHouse" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM visitor_application
+        WHERE community_id = #{communityId}
+          AND house_no = #{houseNo}
+          AND is_deleted = 0
+        ORDER BY create_time DESC
+    </select>
+
+</mapper>
