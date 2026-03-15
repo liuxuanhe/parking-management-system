@@ -35,6 +35,9 @@ class ExportTaskProcessorTest {
     @Mock
     private AccessLogMapper accessLogMapper;
 
+    @Mock
+    private MaskingService maskingService;
+
     @InjectMocks
     private ExportTaskProcessor processor;
 
@@ -147,5 +150,80 @@ class ExportTaskProcessorTest {
     @DisplayName("单次导出最大记录数限制为100000")
     void maxExportRecords_isCorrect() {
         assertEquals(100000, ExportTaskProcessor.MAX_EXPORT_RECORDS);
+    }
+
+    @Test
+    @DisplayName("默认导出执行脱敏 - needRawData 为 null")
+    void executeExport_maskByDefault() {
+        ExportTask task = createTask("operation_log");
+        task.setNeedRawData(null);
+
+        OperationLog log1 = new OperationLog();
+        log1.setBeforeValue("手机号: 13812345678");
+        log1.setAfterValue("身份证: 110101199001011234");
+        when(operationLogMapper.selectByCondition(eq(1001L), isNull(), isNull(), isNull(), isNull()))
+                .thenReturn(List.of(log1));
+
+        int count = processor.executeExport(task);
+
+        assertEquals(1, count);
+        // 验证手机号被脱敏
+        assertTrue(log1.getBeforeValue().contains("****"));
+        // 验证身份证被脱敏
+        assertTrue(log1.getAfterValue().contains("********"));
+    }
+
+    @Test
+    @DisplayName("默认导出执行脱敏 - needRawData 为 0")
+    void executeExport_maskWhenNeedRawDataZero() {
+        ExportTask task = createTask("access_log");
+        task.setNeedRawData(0);
+
+        AccessLog log1 = new AccessLog();
+        log1.setRequestBody("{\"phone\":\"13912345678\"}");
+        log1.setQueryParams("phone=13912345678");
+        when(accessLogMapper.selectByCondition(eq(1001L), isNull(), isNull(), isNull(), isNull()))
+                .thenReturn(List.of(log1));
+
+        int count = processor.executeExport(task);
+
+        assertEquals(1, count);
+        assertTrue(log1.getRequestBody().contains("****"));
+        assertTrue(log1.getQueryParams().contains("****"));
+    }
+
+    @Test
+    @DisplayName("原始数据导出跳过脱敏 - needRawData 为 1")
+    void executeExport_skipMaskWhenRawData() {
+        ExportTask task = createTask("operation_log");
+        task.setNeedRawData(1);
+
+        OperationLog log1 = new OperationLog();
+        log1.setBeforeValue("手机号: 13812345678");
+        log1.setAfterValue("身份证: 110101199001011234");
+        when(operationLogMapper.selectByCondition(eq(1001L), isNull(), isNull(), isNull(), isNull()))
+                .thenReturn(List.of(log1));
+
+        int count = processor.executeExport(task);
+
+        assertEquals(1, count);
+        // 原始数据不脱敏，保持原值
+        assertEquals("手机号: 13812345678", log1.getBeforeValue());
+        assertEquals("身份证: 110101199001011234", log1.getAfterValue());
+    }
+
+    @Test
+    @DisplayName("脱敏方法 - 手机号脱敏正确")
+    void maskSensitiveContent_phone() {
+        String result = processor.maskSensitiveContent("联系人手机: 13812345678");
+        assertTrue(result.contains("138****5678"));
+        assertFalse(result.contains("13812345678"));
+    }
+
+    @Test
+    @DisplayName("脱敏方法 - null 和空字符串返回原值")
+    void maskSensitiveContent_nullAndEmpty() {
+        assertNull(processor.maskSensitiveContent(null));
+        assertEquals("", processor.maskSensitiveContent(""));
     }
 }
