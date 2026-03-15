@@ -1,7 +1,10 @@
 package com.parking.service;
 
+import com.parking.common.BusinessException;
+import com.parking.common.ErrorCode;
 import com.parking.mapper.ExportTaskMapper;
 import com.parking.model.ExportTask;
+import com.parking.service.AuthorizationService;
 import com.parking.service.impl.ExportServiceImpl;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,6 +30,9 @@ class ExportServiceTest {
 
     @Mock
     private ExportTaskProcessor exportTaskProcessor;
+
+    @Mock
+    private AuthorizationService authorizationService;
 
     @InjectMocks
     private ExportServiceImpl exportService;
@@ -139,5 +145,55 @@ class ExportServiceTest {
 
         assertThrows(com.parking.common.BusinessException.class,
                 () -> exportService.getDownloadableTask(1L));
+    }
+
+    @Test
+    @DisplayName("创建原始数据导出任务 - 成功（超级管理员 + IP 白名单通过）")
+    void createRawDataExport_success() {
+        doNothing().when(authorizationService).checkRolePermission("super_admin", "export_raw_data");
+        doNothing().when(authorizationService).checkIpWhitelist("192.168.1.1", "export_raw_data");
+        doAnswer(invocation -> {
+            ExportTask t = invocation.getArgument(0);
+            t.setId(10L);
+            return null;
+        }).when(exportTaskMapper).insert(any(ExportTask.class));
+
+        ExportTask result = exportService.createRawDataExport(
+                1001L, 100L, "超级管理员", "{}", "super_admin", "192.168.1.1");
+
+        assertNotNull(result);
+        assertEquals(10L, result.getId());
+        assertEquals(1, result.getNeedRawData());
+        assertEquals("parking_record", result.getExportType());
+        verify(authorizationService).checkRolePermission("super_admin", "export_raw_data");
+        verify(authorizationService).checkIpWhitelist("192.168.1.1", "export_raw_data");
+        verify(exportTaskProcessor).processExportTask(10L);
+    }
+
+    @Test
+    @DisplayName("创建原始数据导出任务 - 非超级管理员被拒绝")
+    void createRawDataExport_notSuperAdmin() {
+        doThrow(new BusinessException(ErrorCode.PARKING_12001))
+                .when(authorizationService).checkRolePermission("property_admin", "export_raw_data");
+
+        assertThrows(BusinessException.class,
+                () -> exportService.createRawDataExport(
+                        1001L, 100L, "物业管理员", "{}", "property_admin", "192.168.1.1"));
+
+        verify(exportTaskMapper, never()).insert(any());
+    }
+
+    @Test
+    @DisplayName("创建原始数据导出任务 - IP 不在白名单被拒绝")
+    void createRawDataExport_ipNotInWhitelist() {
+        doNothing().when(authorizationService).checkRolePermission("super_admin", "export_raw_data");
+        doThrow(new BusinessException(ErrorCode.PARKING_20001))
+                .when(authorizationService).checkIpWhitelist("10.0.0.1", "export_raw_data");
+
+        assertThrows(BusinessException.class,
+                () -> exportService.createRawDataExport(
+                        1001L, 100L, "超级管理员", "{}", "super_admin", "10.0.0.1"));
+
+        verify(exportTaskMapper, never()).insert(any());
     }
 }

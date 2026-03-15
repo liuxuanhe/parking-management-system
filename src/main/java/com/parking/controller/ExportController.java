@@ -38,6 +38,25 @@ public class ExportController {
     }
 
     /**
+     * 创建原始数据导出任务（需超级管理员权限 + IP 白名单校验）
+     * POST /api/v1/exports/parking-records/raw
+     */
+    @PostMapping("/parking-records/raw")
+    public ApiResponse<ExportTask> exportRawParkingRecords(
+            @RequestParam Long communityId,
+            @RequestParam Long operatorId,
+            @RequestParam String operatorName,
+            @RequestParam(required = false) String queryParams,
+            @RequestParam String role,
+            jakarta.servlet.http.HttpServletRequest request) {
+        String ip = request.getRemoteAddr();
+        log.info("原始数据导出: communityId={}, operatorId={}, ip={}", communityId, operatorId, ip);
+        ExportTask task = exportService.createRawDataExport(
+                communityId, operatorId, operatorName, queryParams, role, ip);
+        return ApiResponse.success(task, RequestContext.getRequestId());
+    }
+
+    /**
      * 查询导出任务状态
      * GET /api/v1/exports/{exportId}/status
      */
