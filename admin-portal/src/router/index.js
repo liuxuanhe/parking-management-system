@@ -58,6 +58,12 @@ const routes = [
         name: 'ZombieVehicles',
         component: () => import('@/views/zombie/ZombieVehicleView.vue'),
         meta: { requiresAuth: true }
+      },
+      {
+        path: '/audit/logs',
+        name: 'AuditLogs',
+        component: () => import('@/views/audit/AuditLogView.vue'),
+        meta: { requiresAuth: true }
       }
     ]
   }

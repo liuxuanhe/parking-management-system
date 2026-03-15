@@ -64,6 +64,13 @@
             <template #title>僵尸车辆</template>
             <a-menu-item key="/zombie-vehicles">僵尸车辆处理</a-menu-item>
           </a-sub-menu>
+
+          <!-- 审计日志 -->
+          <a-sub-menu key="audit">
+            <template #icon><FileSearchOutlined /></template>
+            <template #title>审计日志</template>
+            <a-menu-item key="/audit/logs">日志查询</a-menu-item>
+          </a-sub-menu>
         </a-menu>
       </a-layout-sider>
 
@@ -78,7 +85,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { TeamOutlined, CarOutlined, UserSwitchOutlined, SettingOutlined, BarChartOutlined, WarningOutlined } from '@ant-design/icons-vue'
+import { TeamOutlined, CarOutlined, UserSwitchOutlined, SettingOutlined, BarChartOutlined, WarningOutlined, FileSearchOutlined } from '@ant-design/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
