@@ -71,4 +71,18 @@
           AND is_deleted = 0
     </update>
 
+    <!-- 查询指定 Data_Domain（community_id + house_no）下所有未删除车牌 -->
+    <!-- 支持同房屋号多业主场景，返回该房屋号下所有业主的车牌 -->
+    <!-- Validates: Requirements 11.1, 11.5 -->
+    <select id="selectByHouse" resultType="com.parking.model.CarPlate">
+        SELECT id, community_id, house_no, owner_id, car_number,
+               car_brand, car_model, car_color, status,
+               is_deleted, create_time, update_time, deleted_time
+        FROM sys_car_plate
+        WHERE community_id = #{communityId}
+          AND house_no = #{houseNo}
+          AND is_deleted = 0
+        ORDER BY create_time ASC
+    </select>
+
 </mapper>

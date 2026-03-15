@@ -6,13 +6,22 @@ import com.parking.common.ErrorCode;
 import com.parking.common.RequestContext;
 import com.parking.dto.VehicleAddRequest;
 import com.parking.dto.VehicleAddResponse;
+import com.parking.dto.VehicleQueryResponse;
 import com.parking.mapper.CarPlateMapper;
+import com.parking.mapper.OwnerMapper;
 import com.parking.model.CarPlate;
+import com.parking.model.Owner;
 import com.parking.service.CacheService;
+import com.parking.service.MaskingService;
 import com.parking.service.VehicleService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 车辆管理服务实现类
@@ -26,13 +35,26 @@ public class VehicleServiceImpl implements VehicleService {
     /** 每个业主最多绑定的车牌数量 */
     private static final int MAX_CAR_PLATES_PER_OWNER = 5;
 
+    /** 车牌缓存资源名称 */
+    private static final String VEHICLES_CACHE_RESOURCE = "vehicles";
+
+    /** 车牌缓存过期时间：30分钟 */
+    private static final long VEHICLES_CACHE_TTL = 30;
+    private static final TimeUnit VEHICLES_CACHE_TTL_UNIT = TimeUnit.MINUTES;
+
     private final CarPlateMapper carPlateMapper;
+    private final OwnerMapper ownerMapper;
     private final CacheService cacheService;
+    private final MaskingService maskingService;
 
     public VehicleServiceImpl(CarPlateMapper carPlateMapper,
-                              CacheService cacheService) {
+                              OwnerMapper ownerMapper,
+                              CacheService cacheService,
+                              MaskingService maskingService) {
         this.carPlateMapper = carPlateMapper;
+        this.ownerMapper = ownerMapper;
         this.cacheService = cacheService;
+        this.maskingService = maskingService;
     }
 
     @Override
@@ -128,5 +150,53 @@ public class VehicleServiceImpl implements VehicleService {
         log.info("操作日志预留: 车牌删除, requestId={}, vehicleId={}, carNumber={}, communityId={}, houseNo={}",
                 RequestContext.getRequestId(), vehicleId, carPlate.getCarNumber(),
                 carPlate.getCommunityId(), carPlate.getHouseNo());
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public VehicleQueryResponse listVehicles(Long communityId, String houseNo) {
+        // 1. 先查 Redis 缓存（Requirements 11.1, 11.5）
+        String cacheKey = cacheService.generateKey(VEHICLES_CACHE_RESOURCE, communityId, houseNo);
+        Optional<Object> cached = cacheService.get(cacheKey);
+        if (cached.isPresent() && cached.get() instanceof VehicleQueryResponse cachedResponse) {
+            log.debug("车牌查询命中缓存: communityId={}, houseNo={}", communityId, houseNo);
+            return cachedResponse;
+        }
+
+        // 2. 缓存未命中，查询数据库
+        List<CarPlate> carPlates = carPlateMapper.selectByHouse(communityId, houseNo);
+        log.info("车牌查询数据库: communityId={}, houseNo={}, 数量={}", communityId, houseNo, carPlates.size());
+
+        // 3. 构建响应并执行脱敏
+        List<VehicleQueryResponse.VehicleItem> items = new ArrayList<>();
+        for (CarPlate cp : carPlates) {
+            VehicleQueryResponse.VehicleItem item = new VehicleQueryResponse.VehicleItem();
+            item.setVehicleId(cp.getId());
+            item.setCarNumber(cp.getCarNumber());
+            item.setCarBrand(cp.getCarBrand());
+            item.setCarModel(cp.getCarModel());
+            item.setCarColor(cp.getCarColor());
+            item.setStatus(cp.getStatus());
+            item.setOwnerId(cp.getOwnerId());
+            item.setCreateTime(cp.getCreateTime());
+
+            // 查询业主手机号并脱敏（Requirements 17.1, 17.8）
+            Owner owner = ownerMapper.selectById(cp.getOwnerId());
+            if (owner != null && owner.getPhoneNumber() != null) {
+                item.setOwnerPhone(maskingService.maskPhoneNumber(owner.getPhoneNumber()));
+            }
+
+            items.add(item);
+        }
+
+        VehicleQueryResponse response = new VehicleQueryResponse();
+        response.setVehicles(items);
+        response.setTotal(items.size());
+
+        // 4. 将结果写入缓存（30分钟过期）
+        cacheService.set(cacheKey, response, VEHICLES_CACHE_TTL, VEHICLES_CACHE_TTL_UNIT);
+        log.debug("车牌查询结果已缓存: key={}, ttl={}分钟", cacheKey, VEHICLES_CACHE_TTL);
+
+        return response;
     }
 }

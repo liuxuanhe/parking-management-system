@@ -4,14 +4,17 @@ import com.parking.common.ApiResponse;
 import com.parking.common.RequestContext;
 import com.parking.dto.VehicleAddRequest;
 import com.parking.dto.VehicleAddResponse;
+import com.parking.dto.VehicleQueryResponse;
 import com.parking.service.VehicleService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -59,5 +62,25 @@ public class VehicleController {
         log.info("车牌删除请求: vehicleId={}", vehicleId);
         vehicleService.deleteVehicle(vehicleId);
         return ApiResponse.success(RequestContext.getRequestId());
+    }
+
+    /**
+     * 查询车牌列表接口
+     * GET /api/v1/vehicles?communityId={communityId}&houseNo={houseNo}
+     * 返回指定 Data_Domain 下所有车牌，支持同房屋号多业主场景
+     * 使用 Redis 缓存（30分钟过期），对敏感信息执行脱敏处理
+     * Validates: Requirements 11.1, 11.5
+     *
+     * @param communityId 小区ID
+     * @param houseNo 房屋号
+     * @return 车牌查询响应
+     */
+    @GetMapping
+    public ApiResponse<VehicleQueryResponse> listVehicles(
+            @RequestParam Long communityId,
+            @RequestParam String houseNo) {
+        log.info("车牌查询请求: communityId={}, houseNo={}", communityId, houseNo);
+        VehicleQueryResponse response = vehicleService.listVehicles(communityId, houseNo);
+        return ApiResponse.success(response, RequestContext.getRequestId());
     }
 }

@@ -2,6 +2,7 @@ package com.parking.service;
 
 import com.parking.dto.VehicleAddRequest;
 import com.parking.dto.VehicleAddResponse;
+import com.parking.dto.VehicleQueryResponse;
 
 /**
  * 车辆管理服务接口
@@ -26,4 +27,17 @@ public interface VehicleService {
      * @param vehicleId 车牌记录ID
      */
     void deleteVehicle(Long vehicleId);
+
+    /**
+     * 查询车牌列表
+     * 根据 Data_Domain（community_id + house_no）查询所有未删除车牌
+     * 支持同房屋号多业主场景，返回该房屋号下所有业主的车牌
+     * 使用 Redis 缓存（30分钟过期），对敏感信息执行脱敏处理
+     * Validates: Requirements 11.1, 11.5
+     *
+     * @param communityId 小区ID
+     * @param houseNo 房屋号
+     * @return 车牌查询响应
+     */
+    VehicleQueryResponse listVehicles(Long communityId, String houseNo);
 }

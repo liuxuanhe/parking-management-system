@@ -3,8 +3,11 @@ package com.parking.service;
 import com.parking.common.BusinessException;
 import com.parking.dto.VehicleAddRequest;
 import com.parking.dto.VehicleAddResponse;
+import com.parking.dto.VehicleQueryResponse;
 import com.parking.mapper.CarPlateMapper;
+import com.parking.mapper.OwnerMapper;
 import com.parking.model.CarPlate;
+import com.parking.model.Owner;
 import com.parking.service.impl.VehicleServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -14,6 +17,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -30,7 +38,13 @@ class VehicleServiceTest {
     private CarPlateMapper carPlateMapper;
 
     @Mock
+    private OwnerMapper ownerMapper;
+
+    @Mock
     private CacheService cacheService;
+
+    @Mock
+    private MaskingService maskingService;
 
     private VehicleServiceImpl vehicleService;
 
@@ -41,7 +55,7 @@ class VehicleServiceTest {
 
     @BeforeEach
     void setUp() {
-        vehicleService = new VehicleServiceImpl(carPlateMapper, cacheService);
+        vehicleService = new VehicleServiceImpl(carPlateMapper, ownerMapper, cacheService, maskingService);
     }
 
     private VehicleAddRequest createValidRequest() {
@@ -304,6 +318,183 @@ class VehicleServiceTest {
 
             assertEquals(10000, exception.getCode());
             assertTrue(exception.getMessage().contains("车牌删除失败"));
+        }
+    }
+
+    @Nested
+    @DisplayName("listVehicles - 查询车牌列表")
+    class ListVehiclesTests {
+
+        private CarPlate createCarPlate(Long id, Long ownerId, String carNumber, String status) {
+            CarPlate cp = new CarPlate();
+            cp.setId(id);
+            cp.setCommunityId(COMMUNITY_ID);
+            cp.setHouseNo(HOUSE_NO);
+            cp.setOwnerId(ownerId);
+            cp.setCarNumber(carNumber);
+            cp.setCarBrand("宝马");
+            cp.setCarModel("3系");
+            cp.setCarColor("白色");
+            cp.setStatus(status);
+            cp.setCreateTime(LocalDateTime.of(2024, 1, 15, 10, 0, 0));
+            return cp;
+        }
+
+        private Owner createOwner(Long id, String phone) {
+            Owner owner = new Owner();
+            owner.setId(id);
+            owner.setPhoneNumber(phone);
+            return owner;
+        }
+
+        @Test
+        @DisplayName("缓存命中时应直接返回缓存结果，不查询数据库")
+        void listVehicles_cacheHit_shouldReturnCachedResult() {
+            String cacheKey = "vehicles:1001:1-101";
+            VehicleQueryResponse cachedResponse = new VehicleQueryResponse();
+            cachedResponse.setVehicles(Collections.emptyList());
+            cachedResponse.setTotal(0);
+
+            when(cacheService.generateKey("vehicles", COMMUNITY_ID, HOUSE_NO)).thenReturn(cacheKey);
+            when(cacheService.get(cacheKey)).thenReturn(Optional.of(cachedResponse));
+
+            VehicleQueryResponse result = vehicleService.listVehicles(COMMUNITY_ID, HOUSE_NO);
+
+            assertNotNull(result);
+            assertEquals(0, result.getTotal());
+            verify(carPlateMapper, never()).selectByHouse(anyLong(), anyString());
+        }
+
+        @Test
+        @DisplayName("缓存未命中时应查询数据库并写入缓存")
+        void listVehicles_cacheMiss_shouldQueryDbAndSetCache() {
+            String cacheKey = "vehicles:1001:1-101";
+            CarPlate cp = createCarPlate(1L, OWNER_ID, VALID_CAR_NUMBER, "normal");
+            Owner owner = createOwner(OWNER_ID, "13812345678");
+
+            when(cacheService.generateKey("vehicles", COMMUNITY_ID, HOUSE_NO)).thenReturn(cacheKey);
+            when(cacheService.get(cacheKey)).thenReturn(Optional.empty());
+            when(carPlateMapper.selectByHouse(COMMUNITY_ID, HOUSE_NO)).thenReturn(List.of(cp));
+            when(ownerMapper.selectById(OWNER_ID)).thenReturn(owner);
+            when(maskingService.maskPhoneNumber("13812345678")).thenReturn("138****5678");
+
+            VehicleQueryResponse result = vehicleService.listVehicles(COMMUNITY_ID, HOUSE_NO);
+
+            assertNotNull(result);
+            assertEquals(1, result.getTotal());
+            verify(cacheService).set(eq(cacheKey), any(VehicleQueryResponse.class), eq(30L), any());
+        }
+
+        @Test
+        @DisplayName("应对车主手机号执行脱敏处理")
+        void listVehicles_shouldMaskOwnerPhone() {
+            String cacheKey = "vehicles:1001:1-101";
+            CarPlate cp = createCarPlate(1L, OWNER_ID, VALID_CAR_NUMBER, "normal");
+            Owner owner = createOwner(OWNER_ID, "13812345678");
+
+            when(cacheService.generateKey("vehicles", COMMUNITY_ID, HOUSE_NO)).thenReturn(cacheKey);
+            when(cacheService.get(cacheKey)).thenReturn(Optional.empty());
+            when(carPlateMapper.selectByHouse(COMMUNITY_ID, HOUSE_NO)).thenReturn(List.of(cp));
+            when(ownerMapper.selectById(OWNER_ID)).thenReturn(owner);
+            when(maskingService.maskPhoneNumber("13812345678")).thenReturn("138****5678");
+
+            VehicleQueryResponse result = vehicleService.listVehicles(COMMUNITY_ID, HOUSE_NO);
+
+            assertEquals("138****5678", result.getVehicles().get(0).getOwnerPhone());
+            verify(maskingService).maskPhoneNumber("13812345678");
+        }
+
+        @Test
+        @DisplayName("同房屋号多业主场景应返回所有业主的车牌")
+        void listVehicles_multipleOwners_shouldReturnAllVehicles() {
+            String cacheKey = "vehicles:1001:1-101";
+            Long owner2Id = 10002L;
+            CarPlate cp1 = createCarPlate(1L, OWNER_ID, "京A12345", "primary");
+            CarPlate cp2 = createCarPlate(2L, OWNER_ID, "京B67890", "normal");
+            CarPlate cp3 = createCarPlate(3L, owner2Id, "京C11111", "normal");
+
+            Owner owner1 = createOwner(OWNER_ID, "13812345678");
+            Owner owner2 = createOwner(owner2Id, "13999998888");
+
+            when(cacheService.generateKey("vehicles", COMMUNITY_ID, HOUSE_NO)).thenReturn(cacheKey);
+            when(cacheService.get(cacheKey)).thenReturn(Optional.empty());
+            when(carPlateMapper.selectByHouse(COMMUNITY_ID, HOUSE_NO)).thenReturn(List.of(cp1, cp2, cp3));
+            when(ownerMapper.selectById(OWNER_ID)).thenReturn(owner1);
+            when(ownerMapper.selectById(owner2Id)).thenReturn(owner2);
+            when(maskingService.maskPhoneNumber("13812345678")).thenReturn("138****5678");
+            when(maskingService.maskPhoneNumber("13999998888")).thenReturn("139****8888");
+
+            VehicleQueryResponse result = vehicleService.listVehicles(COMMUNITY_ID, HOUSE_NO);
+
+            assertEquals(3, result.getTotal());
+            assertEquals(3, result.getVehicles().size());
+            // 验证不同业主的车牌都包含在内
+            assertEquals("京A12345", result.getVehicles().get(0).getCarNumber());
+            assertEquals("京C11111", result.getVehicles().get(2).getCarNumber());
+            assertEquals("139****8888", result.getVehicles().get(2).getOwnerPhone());
+        }
+
+        @Test
+        @DisplayName("无车牌时应返回空列表")
+        void listVehicles_noVehicles_shouldReturnEmptyList() {
+            String cacheKey = "vehicles:1001:1-101";
+
+            when(cacheService.generateKey("vehicles", COMMUNITY_ID, HOUSE_NO)).thenReturn(cacheKey);
+            when(cacheService.get(cacheKey)).thenReturn(Optional.empty());
+            when(carPlateMapper.selectByHouse(COMMUNITY_ID, HOUSE_NO)).thenReturn(Collections.emptyList());
+
+            VehicleQueryResponse result = vehicleService.listVehicles(COMMUNITY_ID, HOUSE_NO);
+
+            assertNotNull(result);
+            assertEquals(0, result.getTotal());
+            assertTrue(result.getVehicles().isEmpty());
+            verify(cacheService).set(eq(cacheKey), any(VehicleQueryResponse.class), eq(30L), any());
+        }
+
+        @Test
+        @DisplayName("业主不存在时手机号应为 null")
+        void listVehicles_ownerNotFound_shouldHaveNullPhone() {
+            String cacheKey = "vehicles:1001:1-101";
+            CarPlate cp = createCarPlate(1L, OWNER_ID, VALID_CAR_NUMBER, "normal");
+
+            when(cacheService.generateKey("vehicles", COMMUNITY_ID, HOUSE_NO)).thenReturn(cacheKey);
+            when(cacheService.get(cacheKey)).thenReturn(Optional.empty());
+            when(carPlateMapper.selectByHouse(COMMUNITY_ID, HOUSE_NO)).thenReturn(List.of(cp));
+            when(ownerMapper.selectById(OWNER_ID)).thenReturn(null);
+
+            VehicleQueryResponse result = vehicleService.listVehicles(COMMUNITY_ID, HOUSE_NO);
+
+            assertNull(result.getVehicles().get(0).getOwnerPhone());
+            verify(maskingService, never()).maskPhoneNumber(anyString());
+        }
+
+        @Test
+        @DisplayName("应正确映射车牌实体字段到响应 DTO")
+        void listVehicles_shouldMapFieldsCorrectly() {
+            String cacheKey = "vehicles:1001:1-101";
+            CarPlate cp = createCarPlate(99L, OWNER_ID, "京AD12345", "primary");
+            cp.setCarBrand("特斯拉");
+            cp.setCarModel("Model 3");
+            cp.setCarColor("黑色");
+            Owner owner = createOwner(OWNER_ID, "13812345678");
+
+            when(cacheService.generateKey("vehicles", COMMUNITY_ID, HOUSE_NO)).thenReturn(cacheKey);
+            when(cacheService.get(cacheKey)).thenReturn(Optional.empty());
+            when(carPlateMapper.selectByHouse(COMMUNITY_ID, HOUSE_NO)).thenReturn(List.of(cp));
+            when(ownerMapper.selectById(OWNER_ID)).thenReturn(owner);
+            when(maskingService.maskPhoneNumber("13812345678")).thenReturn("138****5678");
+
+            VehicleQueryResponse result = vehicleService.listVehicles(COMMUNITY_ID, HOUSE_NO);
+
+            VehicleQueryResponse.VehicleItem item = result.getVehicles().get(0);
+            assertEquals(99L, item.getVehicleId());
+            assertEquals("京AD12345", item.getCarNumber());
+            assertEquals("特斯拉", item.getCarBrand());
+            assertEquals("Model 3", item.getCarModel());
+            assertEquals("黑色", item.getCarColor());
+            assertEquals("primary", item.getStatus());
+            assertEquals(OWNER_ID, item.getOwnerId());
+            assertNotNull(item.getCreateTime());
         }
     }
 }
