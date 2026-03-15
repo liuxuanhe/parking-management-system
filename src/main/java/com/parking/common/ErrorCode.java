@@ -35,6 +35,11 @@ public enum ErrorCode {
     // 8xxx: Visitor 入场激活相关
     PARKING_8001(8001, "Visitor 激活窗口已过期，授权已自动取消"),
 
+    // 22xxx: 僵尸车辆相关
+    PARKING_22001(22001, "僵尸车辆记录不存在"),
+    PARKING_22002(22002, "该僵尸车辆已处理，无法重复操作"),
+    PARKING_22003(22003, "处理方式无效，仅支持 contacted/resolved/ignored"),
+
     // 9xxx: 车位配置相关
     PARKING_9001(9001, "Visitor 可开放车位不足，无法申请"),
     PARKING_9002(9002, "新车位数小于当前在场车辆数，无法修改"),

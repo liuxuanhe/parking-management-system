@@ -29,6 +29,11 @@ public interface ZombieVehicleMapper {
                                                     @Param("status") String status);
 
     /**
+     * 根据ID查询僵尸车辆
+     */
+    ZombieVehicle selectById(@Param("id") Long id);
+
+    /**
      * 更新僵尸车辆处理信息
      */
     void updateHandle(@Param("zombie") ZombieVehicle zombie);

@@ -1,5 +1,8 @@
 package com.parking.service;
 
+import com.parking.common.BusinessException;
+import com.parking.common.ErrorCode;
+import com.parking.dto.ZombieVehicleHandleRequest;
 import com.parking.dto.ZombieVehicleQueryResponse;
 import com.parking.mapper.ZombieVehicleMapper;
 import com.parking.model.ZombieVehicle;
@@ -35,6 +38,7 @@ class ZombieVehicleServiceTest {
     private ZombieVehicleServiceImpl zombieVehicleService;
 
     private static final Long COMMUNITY_ID = 1001L;
+    private static final Long ADMIN_ID = 100L;
 
     @Test
     @DisplayName("查询僵尸车辆列表 - 有数据且车牌脱敏")
@@ -79,6 +83,108 @@ class ZombieVehicleServiceTest {
         List<ZombieVehicleQueryResponse> result = zombieVehicleService.listZombieVehicles(COMMUNITY_ID, null);
 
         assertTrue(result.isEmpty());
+    }
+
+    // ===== 处理僵尸车辆测试 =====
+
+    @Test
+    @DisplayName("处理僵尸车辆 - contacted 成功")
+    void handleZombieVehicle_contacted() {
+        ZombieVehicle zombie = buildZombie(1L, "京A12345", "101", 10, "unhandled");
+        when(zombieVehicleMapper.selectById(1L)).thenReturn(zombie);
+
+        ZombieVehicleHandleRequest request = new ZombieVehicleHandleRequest();
+        request.setCommunityId(COMMUNITY_ID);
+        request.setHandleType("contacted");
+        request.setContactRecord("已电话联系车主，约定明日移车");
+
+        zombieVehicleService.handleZombieVehicle(1L, request, ADMIN_ID);
+
+        verify(zombieVehicleMapper).updateHandle(argThat(z ->
+                "contacted".equals(z.getStatus()) &&
+                "已电话联系车主，约定明日移车".equals(z.getContactRecord()) &&
+                ADMIN_ID.equals(z.getHandlerAdminId()) &&
+                z.getHandleTime() != null
+        ));
+    }
+
+    @Test
+    @DisplayName("处理僵尸车辆 - resolved 成功")
+    void handleZombieVehicle_resolved() {
+        ZombieVehicle zombie = buildZombie(2L, "京B67890", "102", 8, "contacted");
+        when(zombieVehicleMapper.selectById(2L)).thenReturn(zombie);
+
+        ZombieVehicleHandleRequest request = new ZombieVehicleHandleRequest();
+        request.setCommunityId(COMMUNITY_ID);
+        request.setHandleType("resolved");
+        request.setSolution("车主已将车辆移走");
+
+        zombieVehicleService.handleZombieVehicle(2L, request, ADMIN_ID);
+
+        verify(zombieVehicleMapper).updateHandle(argThat(z ->
+                "resolved".equals(z.getStatus()) &&
+                "车主已将车辆移走".equals(z.getSolution())
+        ));
+    }
+
+    @Test
+    @DisplayName("处理僵尸车辆 - ignored 成功")
+    void handleZombieVehicle_ignored() {
+        ZombieVehicle zombie = buildZombie(3L, "京C11111", "103", 15, "unhandled");
+        when(zombieVehicleMapper.selectById(3L)).thenReturn(zombie);
+
+        ZombieVehicleHandleRequest request = new ZombieVehicleHandleRequest();
+        request.setCommunityId(COMMUNITY_ID);
+        request.setHandleType("ignored");
+        request.setIgnoreReason("车主长期出差，已知情");
+
+        zombieVehicleService.handleZombieVehicle(3L, request, ADMIN_ID);
+
+        verify(zombieVehicleMapper).updateHandle(argThat(z ->
+                "ignored".equals(z.getStatus()) &&
+                "车主长期出差，已知情".equals(z.getIgnoreReason())
+        ));
+    }
+
+    @Test
+    @DisplayName("处理僵尸车辆 - 记录不存在抛出 PARKING_22001")
+    void handleZombieVehicle_notFound() {
+        when(zombieVehicleMapper.selectById(999L)).thenReturn(null);
+
+        ZombieVehicleHandleRequest request = new ZombieVehicleHandleRequest();
+        request.setCommunityId(COMMUNITY_ID);
+        request.setHandleType("contacted");
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> zombieVehicleService.handleZombieVehicle(999L, request, ADMIN_ID));
+        assertEquals(ErrorCode.PARKING_22001.getCode(), ex.getCode());
+    }
+
+    @Test
+    @DisplayName("处理僵尸车辆 - 已 resolved 不允许重复操作")
+    void handleZombieVehicle_alreadyResolved() {
+        ZombieVehicle zombie = buildZombie(4L, "京D22222", "104", 9, "resolved");
+        when(zombieVehicleMapper.selectById(4L)).thenReturn(zombie);
+
+        ZombieVehicleHandleRequest request = new ZombieVehicleHandleRequest();
+        request.setCommunityId(COMMUNITY_ID);
+        request.setHandleType("contacted");
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> zombieVehicleService.handleZombieVehicle(4L, request, ADMIN_ID));
+        assertEquals(ErrorCode.PARKING_22002.getCode(), ex.getCode());
+    }
+
+    @Test
+    @DisplayName("处理僵尸车辆 - 无效处理方式抛出 PARKING_22003")
+    void handleZombieVehicle_invalidHandleType() {
+        ZombieVehicleHandleRequest request = new ZombieVehicleHandleRequest();
+        request.setCommunityId(COMMUNITY_ID);
+        request.setHandleType("invalid_type");
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> zombieVehicleService.handleZombieVehicle(1L, request, ADMIN_ID));
+        assertEquals(ErrorCode.PARKING_22003.getCode(), ex.getCode());
     }
 
     private ZombieVehicle buildZombie(Long id, String carNumber, String houseNo, int days, String status) {

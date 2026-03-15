@@ -30,6 +30,14 @@
         ORDER BY create_time DESC
     </select>
 
+    <select id="selectById" resultType="com.parking.model.ZombieVehicle">
+        SELECT id, community_id, house_no, car_number, entry_record_id, enter_time,
+               continuous_days, status, contact_record, solution, ignore_reason,
+               handler_admin_id, handle_time, create_time, update_time
+        FROM zombie_vehicle
+        WHERE id = #{id}
+    </select>
+
     <update id="updateHandle">
         UPDATE zombie_vehicle
         SET status = #{zombie.status},

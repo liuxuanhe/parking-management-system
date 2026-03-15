@@ -1,5 +1,6 @@
 package com.parking.service;
 
+import com.parking.dto.ZombieVehicleHandleRequest;
 import com.parking.dto.ZombieVehicleQueryResponse;
 import java.util.List;
 
@@ -11,10 +12,11 @@ public interface ZombieVehicleService {
 
     /**
      * 查询僵尸车辆列表
-     *
-     * @param communityId 小区ID
-     * @param status      状态筛选（可选，null 表示全部）
-     * @return 僵尸车辆列表
      */
     List<ZombieVehicleQueryResponse> listZombieVehicles(Long communityId, String status);
+
+    /**
+     * 处理僵尸车辆
+     */
+    void handleZombieVehicle(Long zombieId, ZombieVehicleHandleRequest request, Long adminId);
 }
