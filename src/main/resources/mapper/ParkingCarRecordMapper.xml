@@ -21,4 +21,28 @@
           AND status = 'entered'
     </select>
 
+    <!-- 查找指定小区和车牌的在场记录 -->
+    <select id="selectEnteredRecord" resultType="com.parking.model.ParkingCarRecord">
+        SELECT id, community_id, house_no, car_number, vehicle_type,
+               enter_time, exit_time, duration, status,
+               exception_reason, handler_admin_id, handle_time, handle_remark,
+               create_time, update_time
+        FROM ${tableName}
+        WHERE community_id = #{communityId}
+          AND car_number = #{carNumber}
+          AND status = 'entered'
+        ORDER BY enter_time DESC
+        LIMIT 1
+    </select>
+
+    <!-- 更新入场记录为出场状态 -->
+    <update id="updateExitRecord">
+        UPDATE ${tableName}
+        SET status = #{record.status},
+            exit_time = #{record.exitTime},
+            duration = #{record.duration},
+            update_time = NOW()
+        WHERE id = #{record.id}
+    </update>
+
 </mapper>

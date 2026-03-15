@@ -30,4 +30,25 @@ public interface ParkingCarRecordMapper {
      */
     int countEnteredByTable(@Param("tableName") String tableName,
                             @Param("communityId") Long communityId);
+
+    /**
+     * 查找指定小区和车牌的在场记录（status='entered'）
+     *
+     * @param tableName   分表名称
+     * @param communityId 小区ID
+     * @param carNumber   车牌号
+     * @return 在场记录，不存在则返回 null
+     */
+    ParkingCarRecord selectEnteredRecord(@Param("tableName") String tableName,
+                                         @Param("communityId") Long communityId,
+                                         @Param("carNumber") String carNumber);
+
+    /**
+     * 更新入场记录为出场状态
+     *
+     * @param tableName 分表名称
+     * @param record    包含 id、exitTime、duration、status 的记录
+     */
+    void updateExitRecord(@Param("tableName") String tableName,
+                          @Param("record") ParkingCarRecord record);
 }
