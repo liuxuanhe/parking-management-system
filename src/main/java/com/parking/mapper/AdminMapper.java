@@ -26,6 +26,14 @@ public interface AdminMapper {
     Admin selectByUsername(@Param("username") String username);
 
     /**
+     * 根据ID查询管理员
+     *
+     * @param id 管理员ID
+     * @return 管理员实体
+     */
+    Admin selectById(@Param("id") Long id);
+
+    /**
      * 统计指定角色的管理员数量
      *
      * @param role 角色
@@ -43,4 +51,26 @@ public interface AdminMapper {
     void updatePassword(@Param("id") Long id,
                         @Param("password") String password,
                         @Param("mustChangePassword") Integer mustChangePassword);
+
+    /**
+     * 登录成功更新：重置失败次数，更新最后登录时间和IP
+     *
+     * @param id          管理员ID
+     * @param lastLoginIp 最后登录IP
+     */
+    void updateLoginSuccess(@Param("id") Long id, @Param("lastLoginIp") String lastLoginIp);
+
+    /**
+     * 登录失败更新：增加失败次数
+     *
+     * @param id 管理员ID
+     */
+    void updateLoginFail(@Param("id") Long id);
+
+    /**
+     * 锁定账号
+     *
+     * @param id 管理员ID
+     */
+    void lockAccount(@Param("id") Long id);
 }

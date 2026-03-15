@@ -55,6 +55,9 @@ public enum ErrorCode {
     PARKING_13001(13001, "Token 已过期"),
     PARKING_13002(13002, "Token 无效"),
     PARKING_13003(13003, "Token 已被撤销"),
+    PARKING_13004(13004, "用户名或密码错误"),
+    PARKING_13005(13005, "账号已被锁定"),
+    PARKING_13006(13006, "必须修改初始密码"),
 
     // 锁相关
     LOCK_ACQUIRE_FAILED(10010, "获取分布式锁失败，请稍后重试"),

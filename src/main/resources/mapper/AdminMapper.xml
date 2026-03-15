@@ -23,6 +23,16 @@
         WHERE username = #{username} AND is_deleted = 0
     </select>
 
+    <!-- 根据ID查询管理员 -->
+    <select id="selectById" resultType="com.parking.model.Admin">
+        SELECT id, community_id, username, password, real_name, phone_number,
+               role, status, login_fail_count, last_login_time, last_login_ip,
+               password_expire_time, must_change_password,
+               create_time, update_time, is_deleted, deleted_time
+        FROM sys_admin
+        WHERE id = #{id} AND is_deleted = 0
+    </select>
+
     <!-- 统计指定角色的管理员数量 -->
     <select id="countByRole" resultType="int">
         SELECT COUNT(*)
@@ -35,6 +45,32 @@
         UPDATE sys_admin
         SET password = #{password},
             must_change_password = #{mustChangePassword},
+            update_time = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 登录成功更新：重置失败次数，更新最后登录时间和IP -->
+    <update id="updateLoginSuccess">
+        UPDATE sys_admin
+        SET login_fail_count = 0,
+            last_login_time = NOW(),
+            last_login_ip = #{lastLoginIp},
+            update_time = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 登录失败更新：增加失败次数 -->
+    <update id="updateLoginFail">
+        UPDATE sys_admin
+        SET login_fail_count = login_fail_count + 1,
+            update_time = NOW()
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 锁定账号 -->
+    <update id="lockAccount">
+        UPDATE sys_admin
+        SET status = 'locked',
             update_time = NOW()
         WHERE id = #{id} AND is_deleted = 0
     </update>
