@@ -79,6 +79,12 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
             request.setAttribute(ATTR_COMMUNITY_ID, communityId);
             request.setAttribute(ATTR_HOUSE_NO, houseNo);
 
+            // 同时设置 Controller 层使用的短键名，保持向后兼容
+            request.setAttribute("userId", userId);
+            request.setAttribute("userRole", role);
+            request.setAttribute("communityId", communityId);
+            request.setAttribute("houseNo", houseNo);
+
             // 2. 验证防重放（timestamp + nonce）
             String timestamp = request.getHeader(HEADER_TIMESTAMP);
             String nonce = request.getHeader(HEADER_NONCE);
