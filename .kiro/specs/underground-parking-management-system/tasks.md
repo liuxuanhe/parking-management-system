@@ -528,7 +528,7 @@
     - 测试状态转换 (in_park ↔ out_of_park)
     - _Requirements: 8.6, 8.7, 8.8_
 
-  - [-] 10.11 实现 Visitor 超时检测定时任务
+  - [x] 10.11 实现 Visitor 超时检测定时任务
     - 创建定时任务 (每小时执行)
     - 查询 accumulated_duration ≥ 1440 分钟的会话
     - 创建超时记录到 visitor_timeout_record 表
@@ -536,7 +536,7 @@
     - 记录操作日志
     - _Requirements: 8.9, 8.10_
 
-  - [ ] 10.12 实现 Visitor 24小时未入场自动取消定时任务
+  - [-] 10.12 实现 Visitor 24小时未入场自动取消定时任务
     - 创建定时任务 (每小时执行)
     - 查询 status='approved_pending_activation' 且超过 expire_time 的授权
     - 更新状态为 canceled_no_entry
