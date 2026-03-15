@@ -54,9 +54,9 @@ service.interceptors.request.use(
       config.headers['Authorization'] = `Bearer ${authStore.accessToken}`
     }
 
-    // 序列化请求体用于签名计算
-    const body = config.data != null ? JSON.stringify(config.data) : ''
-    const { timestamp, nonce, signature } = await generateSecurityHeaders(body)
+    // 后端拦截器阶段 ContentCachingRequestWrapper 尚未缓存请求体，
+    // extractRequestBody 返回空字符串，因此签名计算时 requestBody 传空
+    const { timestamp, nonce, signature } = await generateSecurityHeaders('')
     config.headers['X-Timestamp'] = timestamp
     config.headers['X-Nonce'] = nonce
     config.headers['X-Signature'] = signature
