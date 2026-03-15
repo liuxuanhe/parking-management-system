@@ -506,7 +506,7 @@
     - 测试 visitor_session 创建
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
 
-  - [-] 10.8 实现 Visitor 多次进出时长累计
+  - [x] 10.8 实现 Visitor 多次进出时长累计
     - 在 EntryService 中处理 Visitor 再次入场
     - 更新 visitor_session 状态为 in_park，记录 last_entry_time
     - 在 ExitService 中处理 Visitor 出场
@@ -528,7 +528,7 @@
     - 测试状态转换 (in_park ↔ out_of_park)
     - _Requirements: 8.6, 8.7, 8.8_
 
-  - [ ] 10.11 实现 Visitor 超时检测定时任务
+  - [-] 10.11 实现 Visitor 超时检测定时任务
     - 创建定时任务 (每小时执行)
     - 查询 accumulated_duration ≥ 1440 分钟的会话
     - 创建超时记录到 visitor_timeout_record 表
