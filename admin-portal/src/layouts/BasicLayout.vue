@@ -50,6 +50,13 @@
             <template #title>车位管理</template>
             <a-menu-item key="/parking/config">车位配置</a-menu-item>
           </a-sub-menu>
+
+          <!-- 数据报表 -->
+          <a-sub-menu key="report">
+            <template #icon><BarChartOutlined /></template>
+            <template #title>数据报表</template>
+            <a-menu-item key="/reports">报表分析</a-menu-item>
+          </a-sub-menu>
         </a-menu>
       </a-layout-sider>
 
@@ -64,7 +71,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { TeamOutlined, CarOutlined, UserSwitchOutlined, SettingOutlined } from '@ant-design/icons-vue'
+import { TeamOutlined, CarOutlined, UserSwitchOutlined, SettingOutlined, BarChartOutlined } from '@ant-design/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
