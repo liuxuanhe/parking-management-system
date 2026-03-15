@@ -2,6 +2,7 @@ package com.parking.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.parking.interceptor.AccessLogInterceptor;
+import com.parking.interceptor.AccountRateLimitInterceptor;
 import com.parking.interceptor.AuthenticationInterceptor;
 import com.parking.interceptor.RateLimitInterceptor;
 import com.parking.interceptor.RequestIdInterceptor;
@@ -70,9 +71,14 @@ public class WebConfig implements WebMvcConfigurer {
                 .excludePathPatterns(EXCLUDE_PATHS)
                 .order(2);
 
+        // AccountRateLimitInterceptor 在认证之后执行，基于已认证的 userId 做账号级限流
+        registry.addInterceptor(new AccountRateLimitInterceptor(redisTemplate, objectMapper))
+                .addPathPatterns("/api/**")
+                .order(3);
+
         // AccessLogInterceptor 最后执行，记录所有接口访问日志
         registry.addInterceptor(accessLogInterceptor)
                 .addPathPatterns("/api/**")
-                .order(3);
+                .order(4);
     }
 }
