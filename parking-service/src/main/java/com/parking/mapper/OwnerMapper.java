@@ -88,4 +88,28 @@ public interface OwnerMapper {
                           @Param("status") String status,
                           @Param("rejectReason") String rejectReason,
                           @Param("auditAdminId") Long auditAdminId);
+
+    /**
+     * 分页查询业主列表
+     *
+     * @param communityId 小区ID
+     * @param status      审核状态（可选）
+     * @param offset      偏移量
+     * @param limit       每页条数
+     * @return 业主列表
+     */
+    List<Owner> selectByPage(@Param("communityId") Long communityId,
+                             @Param("status") String status,
+                             @Param("offset") int offset,
+                             @Param("limit") int limit);
+
+    /**
+     * 统计业主总数
+     *
+     * @param communityId 小区ID
+     * @param status      审核状态（可选）
+     * @return 总数
+     */
+    long countByCondition(@Param("communityId") Long communityId,
+                          @Param("status") String status);
 }

@@ -76,4 +76,34 @@
         WHERE id = #{id} AND is_deleted = 0
     </update>
 
+    <!-- 分页查询业主列表 -->
+    <select id="selectByPage" resultType="com.parking.model.Owner">
+        SELECT id, community_id, house_no, phone_number, id_card_last4, real_name,
+               status, reject_reason, audit_admin_id, audit_time, account_status,
+               create_time, update_time, is_deleted, deleted_time
+        FROM sys_owner
+        WHERE is_deleted = 0
+        <if test="communityId != null">
+            AND community_id = #{communityId}
+        </if>
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+        ORDER BY create_time DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <!-- 统计业主总数 -->
+    <select id="countByCondition" resultType="long">
+        SELECT COUNT(*)
+        FROM sys_owner
+        WHERE is_deleted = 0
+        <if test="communityId != null">
+            AND community_id = #{communityId}
+        </if>
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+    </select>
+
 </mapper>

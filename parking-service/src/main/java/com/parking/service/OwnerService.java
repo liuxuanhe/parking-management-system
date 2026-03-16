@@ -1,5 +1,6 @@
 package com.parking.service;
 
+import com.parking.dto.OwnerListResponse;
 import com.parking.dto.OwnerRegisterRequest;
 import com.parking.dto.OwnerRegisterResponse;
 
@@ -17,6 +18,17 @@ public interface OwnerService {
      * @return 注册响应
      */
     OwnerRegisterResponse register(OwnerRegisterRequest request);
+
+    /**
+     * 分页查询业主列表
+     *
+     * @param communityId 小区ID（可选）
+     * @param status      审核状态（可选）
+     * @param page        页码（从1开始）
+     * @param pageSize    每页条数
+     * @return 分页响应
+     */
+    OwnerListResponse listOwners(Long communityId, String status, int page, int pageSize);
 
     /**
      * 注销业主账号

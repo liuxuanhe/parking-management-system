@@ -6,12 +6,15 @@ import com.parking.common.RequireRole;
 import com.parking.dto.BatchAuditRequest;
 import com.parking.dto.BatchAuditResponse;
 import com.parking.dto.OwnerDisableRequest;
+import com.parking.dto.OwnerListResponse;
 import com.parking.dto.OwnerRegisterRequest;
 import com.parking.dto.OwnerRegisterResponse;
 import com.parking.service.BatchAuditService;
 import com.parking.service.OwnerService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -35,6 +38,35 @@ public class OwnerController {
     public OwnerController(OwnerService ownerService, BatchAuditService batchAuditService) {
         this.ownerService = ownerService;
         this.batchAuditService = batchAuditService;
+    }
+
+    /**
+     * 查询业主列表（分页）
+     * GET /api/v1/owners?communityId=xxx&status=xxx&page=1&pageSize=10
+     * Property_Admin 仅查看本小区，Super_Admin 可查看所有
+     *
+     * @param communityId 小区ID（可选，Super_Admin 不传则查全部）
+     * @param status      审核状态筛选（可选）
+     * @param page        页码，默认1
+     * @param pageSize    每页条数，默认10
+     * @return 分页响应
+     */
+    @GetMapping
+    public ApiResponse<OwnerListResponse> listOwners(
+            HttpServletRequest servletRequest,
+            @RequestParam(required = false) Long communityId,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        // Property_Admin 强制限定本小区
+        String role = (String) servletRequest.getAttribute("userRole");
+        Long userCommunityId = (Long) servletRequest.getAttribute("communityId");
+        Long filterCommunityId = "super_admin".equals(role) ? communityId : userCommunityId;
+
+        log.info("查询业主列表: communityId={}, status={}, page={}, pageSize={}",
+                filterCommunityId, status, page, pageSize);
+        OwnerListResponse response = ownerService.listOwners(filterCommunityId, status, page, pageSize);
+        return ApiResponse.success(response, RequestContext.getRequestId());
     }
 
     /**

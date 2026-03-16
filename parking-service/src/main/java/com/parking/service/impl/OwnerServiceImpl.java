@@ -2,6 +2,8 @@ package com.parking.service.impl;
 
 import com.parking.common.BusinessException;
 import com.parking.common.ErrorCode;
+import com.parking.dto.OwnerListItem;
+import com.parking.dto.OwnerListResponse;
 import com.parking.dto.OwnerRegisterRequest;
 import com.parking.dto.OwnerRegisterResponse;
 import com.parking.mapper.CarPlateMapper;
@@ -16,6 +18,9 @@ import com.parking.service.VerificationCodeService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 业主服务实现类
@@ -123,5 +128,45 @@ public class OwnerServiceImpl implements OwnerService {
         // 6. 记录操作日志预留（Requirements 14.6）
         log.info("业主账号注销: ownerId={}, communityId={}, houseNo={}, reason={}, operatorId={}",
                 ownerId, owner.getCommunityId(), owner.getHouseNo(), reason, operatorId);
+    }
+
+    @Override
+    public OwnerListResponse listOwners(Long communityId, String status, int page, int pageSize) {
+        // 计算偏移量
+        int offset = (page - 1) * pageSize;
+
+        // 查询业主列表
+        List<Owner> owners = ownerMapper.selectByPage(communityId, status, offset, pageSize);
+
+        // 查询总数
+        long total = ownerMapper.countByCondition(communityId, status);
+
+        // 转换为 DTO
+        List<OwnerListItem> records = owners.stream()
+                .map(this::convertToListItem)
+                .collect(Collectors.toList());
+
+        OwnerListResponse response = new OwnerListResponse();
+        response.setRecords(records);
+        response.setTotal(total);
+        return response;
+    }
+
+    /**
+     * 将 Owner 实体转换为 OwnerListItem DTO
+     */
+    private OwnerListItem convertToListItem(Owner owner) {
+        OwnerListItem item = new OwnerListItem();
+        item.setOwnerId(owner.getId());
+        item.setCommunityId(owner.getCommunityId());
+        item.setHouseNo(owner.getHouseNo());
+        item.setPhoneNumber(owner.getPhoneNumber());
+        item.setIdCardLast4(owner.getIdCardLast4());
+        item.setRealName(owner.getRealName());
+        item.setStatus(owner.getStatus());
+        item.setRejectReason(owner.getRejectReason());
+        item.setAccountStatus(owner.getAccountStatus());
+        item.setCreateTime(owner.getCreateTime());
+        return item;
     }
 }
