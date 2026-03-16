@@ -56,6 +56,10 @@ jwt:
 signature:
   secret-key: c2lnbmF0dXJlLXNlY3JldC1rZXktZm9yLXBhcmtpbmctc3lzdGVtLTIwMjQ=
 
+# 开发环境万能验证码（生产环境务必删除或留空）
+verification:
+  dev-code: "000000"
+
 logging:
   level:
     root: INFO

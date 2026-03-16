@@ -4,6 +4,8 @@ import com.parking.common.BusinessException;
 import com.parking.common.ErrorCode;
 import com.parking.dto.OwnerListItem;
 import com.parking.dto.OwnerListResponse;
+import com.parking.dto.OwnerLoginRequest;
+import com.parking.dto.OwnerLoginResponse;
 import com.parking.dto.OwnerRegisterRequest;
 import com.parking.dto.OwnerRegisterResponse;
 import com.parking.mapper.CarPlateMapper;
@@ -13,9 +15,11 @@ import com.parking.mapper.OwnerMapper;
 import com.parking.model.House;
 import com.parking.model.Owner;
 import com.parking.model.OwnerHouseRel;
+import com.parking.service.JwtTokenService;
 import com.parking.service.OwnerService;
 import com.parking.service.VerificationCodeService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,17 +40,71 @@ public class OwnerServiceImpl implements OwnerService {
     private final HouseMapper houseMapper;
     private final VerificationCodeService verificationCodeService;
     private final CarPlateMapper carPlateMapper;
+    private final JwtTokenService jwtTokenService;
+
+    /** 开发环境万能验证码，配置 verification.dev-code 即可启用 */
+    @Value("${verification.dev-code:}")
+    private String devCode;
 
     public OwnerServiceImpl(OwnerMapper ownerMapper,
                             OwnerHouseRelMapper ownerHouseRelMapper,
                             HouseMapper houseMapper,
                             VerificationCodeService verificationCodeService,
-                            CarPlateMapper carPlateMapper) {
+                            CarPlateMapper carPlateMapper,
+                            JwtTokenService jwtTokenService) {
         this.ownerMapper = ownerMapper;
         this.ownerHouseRelMapper = ownerHouseRelMapper;
         this.houseMapper = houseMapper;
         this.verificationCodeService = verificationCodeService;
         this.carPlateMapper = carPlateMapper;
+        this.jwtTokenService = jwtTokenService;
+    }
+
+    @Override
+    public OwnerLoginResponse login(OwnerLoginRequest request) {
+        // 1. 验证验证码（支持开发环境万能验证码）
+        boolean isDevCode = devCode != null && !devCode.isEmpty()
+                && devCode.equals(request.getVerificationCode());
+        if (!isDevCode) {
+            verificationCodeService.verify(request.getPhoneNumber(), request.getVerificationCode());
+        }
+
+        // 2. 根据手机号查询业主
+        Owner owner = ownerMapper.selectByPhone(request.getPhoneNumber());
+        if (owner == null) {
+            log.warn("业主登录失败：手机号未注册, phone={}", request.getPhoneNumber());
+            throw new BusinessException(ErrorCode.PARKING_13007);
+        }
+
+        // 3. 校验审核状态
+        if (!"approved".equals(owner.getStatus())) {
+            log.warn("业主登录失败：账号未通过审核, ownerId={}, status={}", owner.getId(), owner.getStatus());
+            throw new BusinessException(ErrorCode.PARKING_13008);
+        }
+
+        // 4. 校验账号状态
+        if (!"active".equals(owner.getAccountStatus())) {
+            log.warn("业主登录失败：账号已被禁用, ownerId={}", owner.getId());
+            throw new BusinessException(ErrorCode.PARKING_13009);
+        }
+
+        // 5. 生成 JWT Token
+        String accessToken = jwtTokenService.generateAccessToken(
+                owner.getId(), "owner", owner.getCommunityId(), owner.getHouseNo());
+        String refreshToken = jwtTokenService.generateRefreshToken(owner.getId());
+
+        // 6. 构建响应
+        OwnerLoginResponse response = new OwnerLoginResponse();
+        response.setAccessToken(accessToken);
+        response.setRefreshToken(refreshToken);
+        response.setOwnerId(owner.getId());
+        response.setCommunityId(owner.getCommunityId());
+        response.setHouseNo(owner.getHouseNo());
+        response.setRealName(owner.getRealName());
+
+        log.info("业主登录成功: ownerId={}, communityId={}, houseNo={}",
+                owner.getId(), owner.getCommunityId(), owner.getHouseNo());
+        return response;
     }
 
     @Override

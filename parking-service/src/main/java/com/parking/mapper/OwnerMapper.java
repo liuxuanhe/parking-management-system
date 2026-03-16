@@ -38,6 +38,14 @@ public interface OwnerMapper {
                                      @Param("communityId") Long communityId);
 
     /**
+     * 根据手机号查询业主（不限小区，用于登录）
+     *
+     * @param phoneNumber 手机号
+     * @return 业主实体
+     */
+    Owner selectByPhone(@Param("phoneNumber") String phoneNumber);
+
+    /**
      * 更新业主账号状态
      *
      * @param id 业主ID

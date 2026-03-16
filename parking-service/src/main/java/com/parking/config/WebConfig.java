@@ -26,6 +26,7 @@ public class WebConfig implements WebMvcConfigurer {
     /** 不需要认证的路径列表 */
     private static final List<String> EXCLUDE_PATHS = List.of(
             "/api/v1/auth/login",
+            "/api/v1/auth/owner-login",
             "/api/v1/auth/refresh",
             "/api/v1/owners/register",
             "/api/v1/verification-code/**"

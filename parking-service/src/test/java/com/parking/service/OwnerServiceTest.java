@@ -12,6 +12,7 @@ import com.parking.model.House;
 import com.parking.model.Owner;
 import com.parking.model.OwnerHouseRel;
 import com.parking.service.impl.OwnerServiceImpl;
+import com.parking.service.JwtTokenService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -47,6 +48,9 @@ class OwnerServiceTest {
     @Mock
     private CarPlateMapper carPlateMapper;
 
+    @Mock
+    private JwtTokenService jwtTokenService;
+
     private OwnerServiceImpl ownerService;
 
     private static final Long COMMUNITY_ID = 1001L;
@@ -58,7 +62,7 @@ class OwnerServiceTest {
     @BeforeEach
     void setUp() {
         ownerService = new OwnerServiceImpl(ownerMapper, ownerHouseRelMapper,
-                houseMapper, verificationCodeService, carPlateMapper);
+                houseMapper, verificationCodeService, carPlateMapper, jwtTokenService);
     }
 
     private OwnerRegisterRequest createValidRequest() {

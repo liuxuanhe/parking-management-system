@@ -1,6 +1,8 @@
 package com.parking.service;
 
 import com.parking.dto.OwnerListResponse;
+import com.parking.dto.OwnerLoginRequest;
+import com.parking.dto.OwnerLoginResponse;
 import com.parking.dto.OwnerRegisterRequest;
 import com.parking.dto.OwnerRegisterResponse;
 
@@ -9,6 +11,15 @@ import com.parking.dto.OwnerRegisterResponse;
  * Validates: Requirements 1.1, 1.4, 1.5, 1.6, 1.7
  */
 public interface OwnerService {
+
+    /**
+     * 业主登录（验证码登录）
+     * 验证验证码 → 查询业主 → 校验状态 → 生成 Token
+     *
+     * @param request 登录请求
+     * @return 登录响应
+     */
+    OwnerLoginResponse login(OwnerLoginRequest request);
 
     /**
      * 业主注册

@@ -8,6 +8,7 @@ import com.parking.mapper.OwnerHouseRelMapper;
 import com.parking.mapper.OwnerMapper;
 import com.parking.model.Owner;
 import com.parking.service.impl.OwnerServiceImpl;
+import com.parking.service.JwtTokenService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -42,6 +43,9 @@ class OwnerDisableServiceTest {
     @Mock
     private CarPlateMapper carPlateMapper;
 
+    @Mock
+    private JwtTokenService jwtTokenService;
+
     private OwnerServiceImpl ownerService;
 
     private static final Long OWNER_ID = 10001L;
@@ -53,7 +57,7 @@ class OwnerDisableServiceTest {
     @BeforeEach
     void setUp() {
         ownerService = new OwnerServiceImpl(ownerMapper, ownerHouseRelMapper,
-                houseMapper, verificationCodeService, carPlateMapper);
+                houseMapper, verificationCodeService, carPlateMapper, jwtTokenService);
     }
 
     private Owner createActiveOwner() {

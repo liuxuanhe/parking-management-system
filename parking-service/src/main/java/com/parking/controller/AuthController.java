@@ -5,7 +5,10 @@ import com.parking.common.RequestContext;
 import com.parking.dto.AdminChangePasswordRequest;
 import com.parking.dto.AdminLoginRequest;
 import com.parking.dto.AdminLoginResponse;
+import com.parking.dto.OwnerLoginRequest;
+import com.parking.dto.OwnerLoginResponse;
 import com.parking.service.AdminService;
+import com.parking.service.OwnerService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 认证控制器
- * 处理管理员登录、修改密码等接口
+ * 处理管理员登录、业主登录、修改密码等接口
  * Validates: Requirements 13.4, 13.5, 13.6, 13.8
  */
 @Slf4j
@@ -25,9 +28,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AdminService adminService;
+    private final OwnerService ownerService;
 
-    public AuthController(AdminService adminService) {
+    public AuthController(AdminService adminService, OwnerService ownerService) {
         this.adminService = adminService;
+        this.ownerService = ownerService;
     }
 
     /**
@@ -65,6 +70,21 @@ public class AuthController {
         log.info("管理员修改密码请求: adminId={}", adminId);
         adminService.changePassword(adminId, request);
         return ApiResponse.success(RequestContext.getRequestId());
+    }
+
+    /**
+     * 业主登录接口（验证码登录）
+     * POST /api/v1/auth/owner-login
+     *
+     * @param request 登录请求（手机号 + 验证码）
+     * @return 登录响应
+     */
+    @PostMapping("/owner-login")
+    public ApiResponse<OwnerLoginResponse> ownerLogin(
+            @Valid @RequestBody OwnerLoginRequest request) {
+        log.info("业主登录请求: phone={}", request.getPhoneNumber());
+        OwnerLoginResponse response = ownerService.login(request);
+        return ApiResponse.success(response, RequestContext.getRequestId());
     }
 
     /**

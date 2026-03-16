@@ -20,6 +20,16 @@
         WHERE id = #{id} AND is_deleted = 0
     </select>
 
+    <!-- 根据手机号查询业主（不限小区，用于登录） -->
+    <select id="selectByPhone" resultType="com.parking.model.Owner">
+        SELECT id, community_id, house_no, phone_number, id_card_last4, real_name,
+               status, reject_reason, audit_admin_id, audit_time, account_status,
+               create_time, update_time, is_deleted, deleted_time
+        FROM sys_owner
+        WHERE phone_number = #{phoneNumber} AND is_deleted = 0
+        LIMIT 1
+    </select>
+
     <!-- 根据手机号和小区ID查询业主 -->
     <select id="selectByPhoneAndCommunity" resultType="com.parking.model.Owner">
         SELECT id, community_id, house_no, phone_number, id_card_last4, real_name,
