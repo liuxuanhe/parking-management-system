@@ -52,4 +52,15 @@ public interface VisitorService {
      * @return 配额查询响应
      */
     VisitorQuotaResponse getQuota(Long communityId, String houseNo);
+
+    /**
+     * 按小区分页查询 Visitor 申请列表（Admin_Portal 使用）
+     *
+     * @param communityId 小区ID
+     * @param status      状态筛选（可选）
+     * @param page        页码
+     * @param pageSize    每页条数
+     * @return 分页响应
+     */
+    com.parking.dto.VisitorListResponse listVisitorsPaged(Long communityId, String status, int page, int pageSize);
 }

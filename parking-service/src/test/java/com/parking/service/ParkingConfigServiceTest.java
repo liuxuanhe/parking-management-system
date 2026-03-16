@@ -118,18 +118,30 @@ class ParkingConfigServiceTest {
         }
 
         @Test
-        @DisplayName("配置不存在时应抛出异常")
-        void getConfig_notFound_shouldThrowException() {
+        @DisplayName("配置不存在时应自动创建默认配置")
+        void getConfig_notFound_shouldCreateDefaultConfig() {
             String cacheKey = "parking_config:1001";
 
             when(cacheService.generateKey("parking_config", COMMUNITY_ID)).thenReturn(cacheKey);
             when(cacheService.get(cacheKey)).thenReturn(Optional.empty());
             when(parkingConfigMapper.selectByCommunityId(COMMUNITY_ID)).thenReturn(null);
+            when(parkingConfigMapper.insert(any(ParkingConfig.class))).thenReturn(1);
 
-            BusinessException ex = assertThrows(BusinessException.class,
-                    () -> parkingConfigService.getConfig(COMMUNITY_ID));
-            assertEquals(10000, ex.getCode());
-            assertTrue(ex.getMessage().contains("停车场配置不存在"));
+            ParkingConfigResponse result = parkingConfigService.getConfig(COMMUNITY_ID);
+
+            assertNotNull(result);
+            // 验证默认值
+            assertEquals(100, result.getTotalSpaces());
+            assertEquals(0, result.getReservedSpaces());
+            assertEquals(72, result.getVisitorQuotaHours());
+            assertEquals(24, result.getVisitorSingleDurationHours());
+            assertEquals(24, result.getVisitorActivationWindowHours());
+            assertEquals(7, result.getZombieVehicleThresholdDays());
+            assertEquals(1, result.getVersion());
+            // 验证调用了 insert
+            verify(parkingConfigMapper).insert(any(ParkingConfig.class));
+            // 验证写入了缓存
+            verify(cacheService).set(eq(cacheKey), any(ParkingConfigResponse.class), eq(30L), any());
         }
 
         @Test

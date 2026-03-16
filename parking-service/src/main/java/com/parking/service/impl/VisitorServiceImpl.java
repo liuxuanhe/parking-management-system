@@ -6,12 +6,16 @@ import com.parking.common.RequestContext;
 import com.parking.dto.VisitorApplyRequest;
 import com.parking.dto.VisitorApplyResponse;
 import com.parking.dto.VisitorAuditRequest;
+import com.parking.dto.VisitorListItem;
+import com.parking.dto.VisitorListResponse;
 import com.parking.dto.VisitorQueryResponse;
 import com.parking.dto.VisitorQuotaResponse;
 import com.parking.mapper.CarPlateMapper;
+import com.parking.mapper.OwnerMapper;
 import com.parking.mapper.VisitorApplicationMapper;
 import com.parking.mapper.VisitorAuthorizationMapper;
 import com.parking.model.CarPlate;
+import com.parking.model.Owner;
 import com.parking.model.VisitorApplication;
 import com.parking.model.VisitorAuthorization;
 import com.parking.service.IdempotencyService;
@@ -41,6 +45,7 @@ import java.util.Map;
 public class VisitorServiceImpl implements VisitorService {
 
     private final CarPlateMapper carPlateMapper;
+    private final OwnerMapper ownerMapper;
     private final VisitorApplicationMapper visitorApplicationMapper;
     private final VisitorAuthorizationMapper visitorAuthorizationMapper;
     private final VisitorQuotaManager visitorQuotaManager;
@@ -226,6 +231,49 @@ public class VisitorServiceImpl implements VisitorService {
 
         log.info("查询 Visitor 月度配额, communityId={}, houseNo={}, 已使用={}分钟, 剩余={}分钟",
                 communityId, houseNo, usedMinutes, remaining);
+        return response;
+    }
+
+    @Override
+    public VisitorListResponse listVisitorsPaged(Long communityId, String status, int page, int pageSize) {
+        // 1. 计算偏移量
+        int offset = (page - 1) * pageSize;
+
+        // 2. 查询分页数据
+        List<VisitorApplication> applications = visitorApplicationMapper.selectByCommunityPaged(
+                communityId, status, offset, pageSize);
+
+        // 3. 查询总数
+        long total = visitorApplicationMapper.countByCommunity(communityId, status);
+
+        // 4. 组装响应列表
+        List<VisitorListItem> items = new ArrayList<>();
+        for (VisitorApplication app : applications) {
+            VisitorListItem item = new VisitorListItem();
+            item.setVisitorId(app.getId());
+            item.setCarNumber(app.getCarNumber());
+            item.setHouseNo(app.getHouseNo());
+            item.setApplyReason(app.getApplyReason());
+            item.setStatus(app.getStatus());
+            item.setRejectReason(app.getRejectReason());
+            item.setCreateTime(app.getCreateTime());
+
+            // 查询业主手机号并脱敏
+            Owner owner = ownerMapper.selectById(app.getOwnerId());
+            if (owner != null && owner.getPhoneNumber() != null) {
+                item.setOwnerPhone(maskingService.mask(owner.getPhoneNumber(), 3, 4));
+            }
+
+            items.add(item);
+        }
+
+        // 5. 构建分页响应
+        VisitorListResponse response = new VisitorListResponse();
+        response.setRecords(items);
+        response.setTotal(total);
+
+        log.info("查询 Visitor 申请列表（分页）, communityId={}, status={}, page={}, pageSize={}, total={}",
+                communityId, status, page, pageSize, total);
         return response;
     }
 }

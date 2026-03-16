@@ -7,6 +7,7 @@ import com.parking.dto.BatchAuditResponse;
 import com.parking.dto.VisitorApplyRequest;
 import com.parking.dto.VisitorApplyResponse;
 import com.parking.dto.VisitorAuditRequest;
+import com.parking.dto.VisitorListResponse;
 import com.parking.dto.VisitorQueryResponse;
 import com.parking.dto.VisitorQuotaResponse;
 import com.parking.service.BatchAuditService;
@@ -68,12 +69,30 @@ public class VisitorController {
     }
 
     /**
-     * 查询 Visitor 权限列表
-     * GET /api/v1/visitors
+     * 查询 Visitor 申请列表（分页）
+     * GET /api/v1/visitors?communityId=xxx&status=xxx&page=1&pageSize=10
+     * Admin_Portal 使用，按 Community 维度查询，支持状态筛选
      */
     @GetMapping
-    public ApiResponse<List<VisitorQueryResponse>> listVisitors(@RequestParam Long communityId,
-                                                                 @RequestParam String houseNo) {
+    public ApiResponse<VisitorListResponse> listVisitorsPaged(
+            @RequestParam Long communityId,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        log.info("查询 Visitor 申请列表: communityId={}, status={}, page={}, pageSize={}",
+                communityId, status, page, pageSize);
+        VisitorListResponse response = visitorService.listVisitorsPaged(communityId, status, page, pageSize);
+        return ApiResponse.success(response, RequestContext.getRequestId());
+    }
+
+    /**
+     * 查询指定房屋号下的 Visitor 权限列表
+     * GET /api/v1/visitors/by-house?communityId=xxx&houseNo=xxx
+     * Owner_App 使用，按 Data_Domain 维度查询
+     */
+    @GetMapping("/by-house")
+    public ApiResponse<List<VisitorQueryResponse>> listVisitorsByHouse(@RequestParam Long communityId,
+                                                                        @RequestParam String houseNo) {
         log.info("查询 Visitor 权限列表: communityId={}, houseNo={}", communityId, houseNo);
         List<VisitorQueryResponse> result = visitorService.listVisitors(communityId, houseNo);
         return ApiResponse.success(result, RequestContext.getRequestId());

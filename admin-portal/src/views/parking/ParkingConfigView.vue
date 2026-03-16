@@ -216,7 +216,7 @@ async function handleEditConfirm() {
       totalSpaces: editForm.value.totalSpaces,
       visitorQuotaHours: editForm.value.visitorQuotaHours,
       visitorSingleDurationHours: editForm.value.visitorSingleDurationHours,
-      version: configData.value.version
+      version: configData.value.version || 1
     })
     message.success('配置修改成功')
     editModalVisible.value = false

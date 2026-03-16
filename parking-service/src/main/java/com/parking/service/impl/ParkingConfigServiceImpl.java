@@ -54,7 +54,9 @@ public class ParkingConfigServiceImpl implements ParkingConfigService {
         // 2. 缓存未命中，查询数据库
         ParkingConfig config = parkingConfigMapper.selectByCommunityId(communityId);
         if (config == null) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR.getCode(), "停车场配置不存在");
+            // 配置不存在，自动创建默认配置
+            config = createDefaultConfig(communityId);
+            log.info("停车场配置不存在，已自动创建默认配置: communityId={}", communityId);
         }
 
         // 3. 构建响应
@@ -65,6 +67,24 @@ public class ParkingConfigServiceImpl implements ParkingConfigService {
         log.debug("停车场配置已缓存: key={}, ttl={}分钟", cacheKey, CONFIG_CACHE_TTL);
 
         return response;
+    }
+
+    /**
+     * 创建默认停车场配置
+     * 默认值：总车位 100，预留 0，月度配额 72 小时，单次 24 小时，激活窗口 24 小时，僵尸车阈值 7 天
+     */
+    private ParkingConfig createDefaultConfig(Long communityId) {
+        ParkingConfig config = new ParkingConfig();
+        config.setCommunityId(communityId);
+        config.setTotalSpaces(100);
+        config.setReservedSpaces(0);
+        config.setVisitorQuotaHours(72);
+        config.setVisitorSingleDurationHours(24);
+        config.setVisitorActivationWindowHours(24);
+        config.setZombieVehicleThresholdDays(7);
+        config.setVersion(1);
+        parkingConfigMapper.insert(config);
+        return config;
     }
 
     @Override

@@ -45,4 +45,29 @@ public interface VisitorApplicationMapper {
      * 根据ID列表批量查询申请（使用行级锁）
      */
     List<VisitorApplication> selectByIdsForUpdate(@Param("ids") List<Long> ids);
+
+    /**
+     * 按小区分页查询 Visitor 申请列表（Admin_Portal 使用）
+     * 支持按状态筛选，houseNo 可选
+     *
+     * @param communityId 小区ID
+     * @param status      状态筛选（可选）
+     * @param offset      偏移量
+     * @param pageSize    每页条数
+     * @return 申请列表
+     */
+    List<VisitorApplication> selectByCommunityPaged(@Param("communityId") Long communityId,
+                                                     @Param("status") String status,
+                                                     @Param("offset") int offset,
+                                                     @Param("pageSize") int pageSize);
+
+    /**
+     * 按小区统计 Visitor 申请总数（Admin_Portal 分页用）
+     *
+     * @param communityId 小区ID
+     * @param status      状态筛选（可选）
+     * @return 总记录数
+     */
+    long countByCommunity(@Param("communityId") Long communityId,
+                          @Param("status") String status);
 }

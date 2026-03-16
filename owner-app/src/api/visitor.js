@@ -8,9 +8,9 @@ export function applyVisitor(data) {
   return post('/visitors/apply', data)
 }
 
-/** 查询 Visitor 权限列表 */
+/** 查询 Visitor 权限列表（按房屋号） */
 export function getVisitorList() {
-  return get('/visitors')
+  return get('/visitors/by-house')
 }
 
 /** 查询月度配额 */

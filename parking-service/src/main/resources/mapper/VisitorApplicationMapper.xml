@@ -81,4 +81,28 @@
         FOR UPDATE
     </select>
 
+    <!-- 按小区分页查询 Visitor 申请列表（Admin_Portal 使用） -->
+    <select id="selectByCommunityPaged" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM visitor_application
+        WHERE community_id = #{communityId}
+          AND is_deleted = 0
+        <if test="status != null and status != ''">
+          AND status = #{status}
+        </if>
+        ORDER BY create_time DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 按小区统计 Visitor 申请总数 -->
+    <select id="countByCommunity" resultType="long">
+        SELECT COUNT(*)
+        FROM visitor_application
+        WHERE community_id = #{communityId}
+          AND is_deleted = 0
+        <if test="status != null and status != ''">
+          AND status = #{status}
+        </if>
+    </select>
+
 </mapper>

@@ -40,6 +40,14 @@ public interface ParkingConfigMapper {
     int countEnteredVehicles(@Param("communityId") Long communityId);
 
     /**
+     * 插入停车场配置记录
+     *
+     * @param config 停车场配置
+     * @return 插入行数
+     */
+    int insert(ParkingConfig config);
+
+    /**
      * 查询所有小区的 community_id 列表
      *
      * @return 所有小区 ID

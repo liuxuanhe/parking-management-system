@@ -38,6 +38,18 @@
           AND is_deleted = 0
     </select>
 
+    <!-- 插入停车场配置记录 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO parking_config (community_id, total_spaces, reserved_spaces,
+                                    visitor_quota_hours, visitor_single_duration_hours,
+                                    visitor_activation_window_hours, zombie_vehicle_threshold_days,
+                                    version, create_time, update_time)
+        VALUES (#{communityId}, #{totalSpaces}, #{reservedSpaces},
+                #{visitorQuotaHours}, #{visitorSingleDurationHours},
+                #{visitorActivationWindowHours}, #{zombieVehicleThresholdDays},
+                #{version}, NOW(), NOW())
+    </insert>
+
     <!-- 查询所有小区的 community_id -->
     <select id="selectAllCommunityIds" resultType="java.lang.Long">
         SELECT DISTINCT community_id
