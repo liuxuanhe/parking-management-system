@@ -34,7 +34,7 @@ class OwnerControllerTest {
     @DisplayName("注册接口应调用 OwnerService 并返回成功响应")
     void register_shouldCallServiceAndReturnSuccess() {
         OwnerRegisterRequest request = new OwnerRegisterRequest();
-        request.setPhone("13812345678");
+        request.setPhoneNumber("13812345678");
         request.setVerificationCode("123456");
         request.setCommunityId(1001L);
         request.setHouseNo("1-101");

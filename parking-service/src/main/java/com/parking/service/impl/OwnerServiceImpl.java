@@ -111,7 +111,7 @@ public class OwnerServiceImpl implements OwnerService {
     @Transactional(rollbackFor = Exception.class)
     public OwnerRegisterResponse register(OwnerRegisterRequest request) {
         // 1. 验证验证码
-        verificationCodeService.verify(request.getPhone(), request.getVerificationCode());
+        verificationCodeService.verify(request.getPhoneNumber(), request.getVerificationCode());
 
         // 2. 验证房屋号是否存在
         House house = houseMapper.selectByCommunityAndHouseNo(
@@ -124,7 +124,7 @@ public class OwnerServiceImpl implements OwnerService {
         Owner owner = new Owner();
         owner.setCommunityId(request.getCommunityId());
         owner.setHouseNo(request.getHouseNo());
-        owner.setPhoneNumber(request.getPhone());
+        owner.setPhoneNumber(request.getPhoneNumber());
         owner.setIdCardLast4(request.getIdCardLast4());
         owner.setStatus("pending");
         owner.setAccountStatus("active");

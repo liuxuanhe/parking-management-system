@@ -67,7 +67,7 @@ class OwnerServiceTest {
 
     private OwnerRegisterRequest createValidRequest() {
         OwnerRegisterRequest request = new OwnerRegisterRequest();
-        request.setPhone(PHONE);
+        request.setPhoneNumber(PHONE);
         request.setVerificationCode(CODE);
         request.setCommunityId(COMMUNITY_ID);
         request.setHouseNo(HOUSE_NO);
@@ -245,7 +245,7 @@ class OwnerServiceTest {
 
             // 第二个业主注册（不同手机号，同一房屋号）
             OwnerRegisterRequest request2 = createValidRequest();
-            request2.setPhone("13987654321");
+            request2.setPhoneNumber("13987654321");
             request2.setIdCardLast4("5678");
             when(verificationCodeService.verify("13987654321", CODE)).thenReturn(true);
             doAnswer(invocation -> {

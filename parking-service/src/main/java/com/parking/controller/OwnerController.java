@@ -79,7 +79,7 @@ public class OwnerController {
     @PostMapping("/register")
     public ApiResponse<OwnerRegisterResponse> register(@Valid @RequestBody OwnerRegisterRequest request) {
         log.info("业主注册请求: phone={}, communityId={}, houseNo={}",
-                request.getPhone(), request.getCommunityId(), request.getHouseNo());
+                request.getPhoneNumber(), request.getCommunityId(), request.getHouseNo());
         OwnerRegisterResponse response = ownerService.register(request);
         return ApiResponse.success(response, RequestContext.getRequestId());
     }
