@@ -10,9 +10,9 @@
     <view class="vehicle-list">
       <view
         v-for="item in vehicleList"
-        :key="item.id"
+        :key="item.vehicleId"
         class="vehicle-item"
-        :class="{ selected: selectedId === item.id, current: item.status === 'primary' }"
+        :class="{ selected: selectedId === item.vehicleId, current: item.status === 'primary' }"
         @click="selectVehicle(item)"
       >
         <view class="item-left">
@@ -20,7 +20,7 @@
           <text class="status" v-if="item.status === 'primary'">当前 Primary</text>
         </view>
         <view class="item-right">
-          <text v-if="selectedId === item.id" class="check-icon">✓</text>
+          <text v-if="selectedId === item.vehicleId" class="check-icon">✓</text>
         </view>
       </view>
     </view>
@@ -61,12 +61,13 @@ export default {
       this.loading = true
       try {
         const data = await getVehicleList()
-        this.vehicleList = (data || []).filter(v => v.status !== 'disabled' && v.status !== 'deleted')
+        const list = data?.records || data?.vehicles || []
+        this.vehicleList = list.filter(v => v.status !== 'disabled' && v.status !== 'deleted')
         // 找到当前 Primary 车辆
         const primary = this.vehicleList.find(v => v.status === 'primary')
         if (primary) {
-          this.currentPrimaryId = primary.id
-          this.selectedId = primary.id
+          this.currentPrimaryId = primary.vehicleId
+          this.selectedId = primary.vehicleId
         }
       } catch (e) {
         // 错误已在 request 中处理
@@ -76,13 +77,13 @@ export default {
     },
 
     selectVehicle(item) {
-      this.selectedId = item.id
+      this.selectedId = item.vehicleId
     },
 
     handleSetPrimary() {
       if (!this.selectedId || this.selectedId === this.currentPrimaryId) return
 
-      const selected = this.vehicleList.find(v => v.id === this.selectedId)
+      const selected = this.vehicleList.find(v => v.vehicleId === this.selectedId)
       uni.showModal({
         title: '二次确认',
         content: `确定将 ${selected.carNumber} 设为 Primary 车辆吗？设置后原 Primary 车辆将变为普通车辆。`,

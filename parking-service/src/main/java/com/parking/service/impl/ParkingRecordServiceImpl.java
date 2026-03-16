@@ -54,10 +54,21 @@ public class ParkingRecordServiceImpl implements ParkingRecordService {
         // 1. 校验时间范围
         validateTimeRange(request.getStartTime(), request.getEndTime());
 
-        // 2. 计算涉及的月份分表列表
-        List<String> tableNames = resolveTableNames(request.getStartTime(), request.getEndTime());
-        log.info("入场记录查询: communityId={}, houseNo={}, 涉及分表={}", 
-                request.getCommunityId(), request.getHouseNo(), tableNames);
+        // 2. 计算涉及的月份分表列表，并过滤掉不存在的分表
+        List<String> allTableNames = resolveTableNames(request.getStartTime(), request.getEndTime());
+        List<String> tableNames = allTableNames.stream()
+                .filter(tbl -> parkingCarRecordMapper.checkTableExists(tbl) > 0)
+                .collect(Collectors.toList());
+        log.info("入场记录查询: communityId={}, houseNo={}, 涉及分表={}, 实际存在={}",
+                request.getCommunityId(), request.getHouseNo(), allTableNames, tableNames);
+
+        // 所有分表都不存在时，直接返回空结果
+        if (tableNames.isEmpty()) {
+            ParkingRecordQueryResponse emptyResponse = new ParkingRecordQueryResponse();
+            emptyResponse.setRecords(new ArrayList<>());
+            emptyResponse.setHasMore(false);
+            return emptyResponse;
+        }
 
         // 3. 解析游标
         LocalDateTime cursorTime = null;

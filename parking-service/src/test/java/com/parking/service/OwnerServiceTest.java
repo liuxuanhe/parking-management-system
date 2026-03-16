@@ -5,6 +5,7 @@ import com.parking.common.ErrorCode;
 import com.parking.dto.OwnerRegisterRequest;
 import com.parking.dto.OwnerRegisterResponse;
 import com.parking.mapper.CarPlateMapper;
+import com.parking.mapper.CommunityMapper;
 import com.parking.mapper.HouseMapper;
 import com.parking.mapper.OwnerHouseRelMapper;
 import com.parking.mapper.OwnerMapper;
@@ -51,6 +52,9 @@ class OwnerServiceTest {
     @Mock
     private JwtTokenService jwtTokenService;
 
+    @Mock
+    private CommunityMapper communityMapper;
+
     private OwnerServiceImpl ownerService;
 
     private static final Long COMMUNITY_ID = 1001L;
@@ -62,7 +66,7 @@ class OwnerServiceTest {
     @BeforeEach
     void setUp() {
         ownerService = new OwnerServiceImpl(ownerMapper, ownerHouseRelMapper,
-                houseMapper, verificationCodeService, carPlateMapper, jwtTokenService);
+                houseMapper, communityMapper, verificationCodeService, carPlateMapper, jwtTokenService);
     }
 
     private OwnerRegisterRequest createValidRequest() {

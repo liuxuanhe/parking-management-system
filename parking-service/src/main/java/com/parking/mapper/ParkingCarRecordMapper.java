@@ -160,4 +160,12 @@ public interface ParkingCarRecordMapper {
     List<ParkingCarRecord> selectZombieCandidates(@Param("tableName") String tableName,
                                                    @Param("communityId") Long communityId,
                                                    @Param("thresholdTime") LocalDateTime thresholdTime);
+
+    /**
+     * 检查指定分表是否存在
+     *
+     * @param tableName 分表名称
+     * @return 存在返回 1，不存在返回 0
+     */
+    int checkTableExists(@Param("tableName") String tableName);
 }

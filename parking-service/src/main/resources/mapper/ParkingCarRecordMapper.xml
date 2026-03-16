@@ -159,4 +159,12 @@
           AND enter_time &lt;= #{thresholdTime}
     </select>
 
+    <!-- 检查指定分表是否存在 -->
+    <select id="checkTableExists" resultType="int">
+        SELECT COUNT(*)
+        FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = #{tableName}
+    </select>
+
 </mapper>

@@ -25,4 +25,7 @@ public class OwnerLoginResponse {
 
     /** 真实姓名 */
     private String realName;
+
+    /** 小区名称 */
+    private String communityName;
 }

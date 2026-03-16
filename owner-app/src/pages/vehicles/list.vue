@@ -1,6 +1,6 @@
 <template>
   <view class="vehicle-list-container">
-    <view class="vehicle-card" v-for="item in vehicleList" :key="item.id">
+    <view class="vehicle-card" v-for="item in vehicleList" :key="item.vehicleId">
       <view class="card-header">
         <text class="plate-number">{{ item.carNumber }}</text>
         <view class="status-tag" :class="item.status">
@@ -8,9 +8,9 @@
         </view>
       </view>
       <view class="card-body">
-        <text class="info-item" v-if="item.brand">品牌：{{ item.brand }}</text>
-        <text class="info-item" v-if="item.model">型号：{{ item.model }}</text>
-        <text class="info-item" v-if="item.color">颜色：{{ item.color }}</text>
+        <text class="info-item" v-if="item.carBrand">品牌：{{ item.carBrand }}</text>
+        <text class="info-item" v-if="item.carModel">型号：{{ item.carModel }}</text>
+        <text class="info-item" v-if="item.carColor">颜色：{{ item.carColor }}</text>
       </view>
       <view class="card-footer">
         <button
@@ -54,7 +54,7 @@ export default {
       this.loading = true
       try {
         const data = await getVehicleList()
-        this.vehicleList = data || []
+        this.vehicleList = data?.records || data?.vehicles || []
       } catch (e) {
         // 错误已在 request 中处理
       } finally {
@@ -80,7 +80,7 @@ export default {
         success: async (res) => {
           if (res.confirm) {
             try {
-              await deleteVehicle(item.id)
+              await deleteVehicle(item.vehicleId)
               uni.showToast({ title: '删除成功', icon: 'success' })
               this.loadList()
             } catch (e) {

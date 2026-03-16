@@ -9,9 +9,11 @@ import com.parking.dto.OwnerLoginResponse;
 import com.parking.dto.OwnerRegisterRequest;
 import com.parking.dto.OwnerRegisterResponse;
 import com.parking.mapper.CarPlateMapper;
+import com.parking.mapper.CommunityMapper;
 import com.parking.mapper.HouseMapper;
 import com.parking.mapper.OwnerHouseRelMapper;
 import com.parking.mapper.OwnerMapper;
+import com.parking.model.Community;
 import com.parking.model.House;
 import com.parking.model.Owner;
 import com.parking.model.OwnerHouseRel;
@@ -38,6 +40,7 @@ public class OwnerServiceImpl implements OwnerService {
     private final OwnerMapper ownerMapper;
     private final OwnerHouseRelMapper ownerHouseRelMapper;
     private final HouseMapper houseMapper;
+    private final CommunityMapper communityMapper;
     private final VerificationCodeService verificationCodeService;
     private final CarPlateMapper carPlateMapper;
     private final JwtTokenService jwtTokenService;
@@ -49,12 +52,14 @@ public class OwnerServiceImpl implements OwnerService {
     public OwnerServiceImpl(OwnerMapper ownerMapper,
                             OwnerHouseRelMapper ownerHouseRelMapper,
                             HouseMapper houseMapper,
+                            CommunityMapper communityMapper,
                             VerificationCodeService verificationCodeService,
                             CarPlateMapper carPlateMapper,
                             JwtTokenService jwtTokenService) {
         this.ownerMapper = ownerMapper;
         this.ownerHouseRelMapper = ownerHouseRelMapper;
         this.houseMapper = houseMapper;
+        this.communityMapper = communityMapper;
         this.verificationCodeService = verificationCodeService;
         this.carPlateMapper = carPlateMapper;
         this.jwtTokenService = jwtTokenService;
@@ -101,6 +106,12 @@ public class OwnerServiceImpl implements OwnerService {
         response.setCommunityId(owner.getCommunityId());
         response.setHouseNo(owner.getHouseNo());
         response.setRealName(owner.getRealName());
+
+        // 7. 查询小区名称
+        Community community = communityMapper.selectById(owner.getCommunityId());
+        if (community != null) {
+            response.setCommunityName(community.getCommunityName());
+        }
 
         log.info("业主登录成功: ownerId={}, communityId={}, houseNo={}",
                 owner.getId(), owner.getCommunityId(), owner.getHouseNo());

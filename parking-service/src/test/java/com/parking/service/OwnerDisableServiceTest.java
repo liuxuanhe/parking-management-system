@@ -3,6 +3,7 @@ package com.parking.service;
 import com.parking.common.BusinessException;
 import com.parking.common.ErrorCode;
 import com.parking.mapper.CarPlateMapper;
+import com.parking.mapper.CommunityMapper;
 import com.parking.mapper.HouseMapper;
 import com.parking.mapper.OwnerHouseRelMapper;
 import com.parking.mapper.OwnerMapper;
@@ -46,6 +47,9 @@ class OwnerDisableServiceTest {
     @Mock
     private JwtTokenService jwtTokenService;
 
+    @Mock
+    private CommunityMapper communityMapper;
+
     private OwnerServiceImpl ownerService;
 
     private static final Long OWNER_ID = 10001L;
@@ -57,7 +61,7 @@ class OwnerDisableServiceTest {
     @BeforeEach
     void setUp() {
         ownerService = new OwnerServiceImpl(ownerMapper, ownerHouseRelMapper,
-                houseMapper, verificationCodeService, carPlateMapper, jwtTokenService);
+                houseMapper, communityMapper, verificationCodeService, carPlateMapper, jwtTokenService);
     }
 
     private Owner createActiveOwner() {

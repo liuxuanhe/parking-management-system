@@ -44,6 +44,8 @@ class ParkingRecordServiceTest {
     @BeforeEach
     void setUp() {
         parkingRecordService = new ParkingRecordServiceImpl(parkingCarRecordMapper, maskingService);
+        // 默认所有分表都存在，避免 checkTableExists 过滤导致测试失败
+        lenient().when(parkingCarRecordMapper.checkTableExists(anyString())).thenReturn(1);
     }
 
     /**
