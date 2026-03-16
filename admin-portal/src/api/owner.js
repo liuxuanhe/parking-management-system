@@ -27,12 +27,13 @@ export function auditOwner(ownerId, data) {
 
 /**
  * 批量审核业主
- * POST /api/v1/owners/batch-audit
+ * POST /api/v1/owners/batch-audit?adminId=xxx&communityId=xxx
  * @param {Object} data - { ownerIds: [1,2,3], action: "approve" | "reject", rejectReason: "xxx" }
+ * @param {Object} params - { adminId, communityId }
  * @returns {Promise<Object>} - { successCount, failCount, failDetails: [{ownerId, reason}] }
  */
-export function batchAuditOwners(data) {
-  return request.post('/owners/batch-audit', data)
+export function batchAuditOwners(data, params) {
+  return request.post('/owners/batch-audit', data, { params })
 }
 
 /**

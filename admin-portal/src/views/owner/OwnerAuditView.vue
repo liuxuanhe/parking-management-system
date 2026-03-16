@@ -310,7 +310,7 @@ function handleBatchApprove() {
         const result = await batchAuditOwners({
           ownerIds: selectedRowKeys.value,
           action: 'approve'
-        })
+        }, { adminId: authStore.adminId, communityId: authStore.communityId })
         message.success(`批量通过完成：成功 ${result.successCount} 条，失败 ${result.failCount} 条`)
         selectedRowKeys.value = []
         fetchOwnerList()
@@ -342,7 +342,7 @@ async function handleBatchRejectConfirm() {
       ownerIds: selectedRowKeys.value,
       action: 'reject',
       rejectReason: batchRejectReason.value.trim()
-    })
+    }, { adminId: authStore.adminId, communityId: authStore.communityId })
     message.success(`批量驳回完成：成功 ${result.successCount} 条，失败 ${result.failCount} 条`)
     batchRejectModalVisible.value = false
     selectedRowKeys.value = []

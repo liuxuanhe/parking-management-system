@@ -228,7 +228,7 @@ function handleApprove(record) {
     cancelText: '取消',
     onOk: async () => {
       try {
-        await auditVisitor(record.visitorId, { action: 'approve' })
+        await auditVisitor(record.visitorId, { action: 'approve' }, { adminId: authStore.adminId, communityId: authStore.communityId })
         message.success('审批通过成功')
         fetchVisitorList()
       } catch (err) {
@@ -260,7 +260,7 @@ async function handleRejectConfirm() {
     await auditVisitor(currentRejectRecord.visitorId, {
       action: 'reject',
       rejectReason: rejectReason.value.trim()
-    })
+    }, { adminId: authStore.adminId, communityId: authStore.communityId })
     message.success('已驳回该申请')
     rejectModalVisible.value = false
     fetchVisitorList()
@@ -283,7 +283,7 @@ function handleBatchApprove() {
         const result = await batchAuditVisitors({
           visitorIds: selectedRowKeys.value,
           action: 'approve'
-        })
+        }, { adminId: authStore.adminId, communityId: authStore.communityId })
         message.success(`批量通过完成：成功 ${result.successCount} 条，失败 ${result.failCount} 条`)
         selectedRowKeys.value = []
         fetchVisitorList()
@@ -315,7 +315,7 @@ async function handleBatchRejectConfirm() {
       visitorIds: selectedRowKeys.value,
       action: 'reject',
       rejectReason: batchRejectReason.value.trim()
-    })
+    }, { adminId: authStore.adminId, communityId: authStore.communityId })
     message.success(`批量驳回完成：成功 ${result.successCount} 条，失败 ${result.failCount} 条`)
     batchRejectModalVisible.value = false
     selectedRowKeys.value = []
