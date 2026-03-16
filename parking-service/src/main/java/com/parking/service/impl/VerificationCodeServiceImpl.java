@@ -43,6 +43,7 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
     private final RedisTemplate<String, Object> redisTemplate;
     private final SecureRandom secureRandom;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public VerificationCodeServiceImpl(RedisTemplate<String, Object> redisTemplate) {
         this.redisTemplate = redisTemplate;
         this.secureRandom = new SecureRandom();

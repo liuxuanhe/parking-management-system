@@ -7,6 +7,7 @@ import com.parking.dto.AdminLoginRequest;
 import com.parking.dto.AdminLoginResponse;
 import com.parking.mapper.AdminMapper;
 import com.parking.model.Admin;
+import com.parking.service.MaskingService;
 import com.parking.service.impl.AdminServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -34,6 +35,9 @@ class AdminServiceTest {
     @Mock
     private JwtTokenService jwtTokenService;
 
+    @Mock
+    private MaskingService maskingService;
+
     private AdminServiceImpl adminService;
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
@@ -43,7 +47,7 @@ class AdminServiceTest {
 
     @BeforeEach
     void setUp() {
-        adminService = new AdminServiceImpl(adminMapper, jwtTokenService);
+        adminService = new AdminServiceImpl(adminMapper, jwtTokenService, maskingService);
     }
 
     /**
